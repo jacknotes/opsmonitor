@@ -1,0 +1,5 @@
+# 临时分析文件
+grafana/**/_*
+*.log
+.DS_Store
+Thumbs.db
