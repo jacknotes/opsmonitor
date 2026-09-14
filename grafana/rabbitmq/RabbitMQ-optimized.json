@@ -12,34 +12,62 @@
       }
     ]
   },
-  "description": "RabbitMQ 监控（基于 kbudde/rabbitmq_exporter 0.x 指标命名，Grafana 7.1.4）。优化版：修正计数器未用 rate() 的问题，新增健康状态 Stat 面板（up/running/mem_alarm/disk_alarm/partitions）、消息速率、磁盘空间面板，队列面板改为 topk 防止序列爆炸。若节点类指标图例为空，请将 {{node}} 改为 {{rabbitmq_node}}（旧版 exporter 标签）。",
+  "description": "RabbitMQ 监控（基于 kbudde/rabbitmq_exporter 0.x 指标命名，Grafana 7.1.4）。按六个分类组织：集群概览、消息总量与速率、队列深度/积压/消费者、交换机与路由、节点资源与健康、连接与对象总数。覆盖 exporter 常用指标：队列级 message_bytes/memory/consumers/consumer_utilisation/messages_persistent/ram，Counter 类 confirmed/get/returned/disk_reads/writes，交换机 published_in/out 速率，以及 Overview 集群级消息总量；未包含 connections 模块（exporter 默认关闭）。队列面板使用 topk 防止序列爆炸，计数器统一用 5m rate。注意：Consumer Utilisation 无数据=消费健康。若节点类指标图例为空，请将 {{node}} 改为 {{rabbitmq_node}}（旧版 exporter 标签）。说明：未包含 Head Message Age 面板——经实测业务消息未设置 AMQP timestamp 属性，管理接口对所有队列返回 head_message_timestamp=null，该指标在此环境无数据（exporter v0.29.0、队列均为 classic 已排除其他原因）。若将来业务发布消息时设置 timestamp 属性，可按 rabbitmq_queue_head_message_timestamp 自行补面板。",
   "editable": true,
   "gnetId": 4371,
   "graphTooltip": 1,
-  "iteration": 1789032463836,
+  "iteration": 1789367539119,
   "links": [],
   "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 301,
+      "panels": [],
+      "title": "集群概览",
+      "description": "Exporter 连通性、节点健康与告警状态、集群消息总量一览（Stat 卡片）",
+      "type": "row"
+    },
     {
       "cacheTimeout": null,
       "datasource": "Prometheus",
       "description": "exporter 最后一次抓取是否成功，0=失败(红) 1=成功(绿)",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
       "id": 101,
       "interval": null,
       "links": [],
@@ -48,7 +76,13 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -72,21 +106,34 @@
       "description": "每个 RabbitMQ 节点是否在运行，0=停止(红) 1=运行(绿)",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
       "id": 102,
       "interval": null,
       "links": [],
@@ -95,7 +142,13 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -119,13 +172,23 @@
       "description": "内存告警状态。触发内存告警后节点会阻塞发布连接",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [
             {
               "options": {
-                "0": { "color": "green", "index": 0, "text": "OK" },
-                "1": { "color": "red", "index": 1, "text": "ALARM" }
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "ALARM"
+                }
               },
               "type": "value"
             }
@@ -133,15 +196,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
       "id": 103,
       "interval": null,
       "links": [],
@@ -150,7 +224,13 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -174,13 +254,23 @@
       "description": "磁盘告警状态。触发后节点会阻塞所有写入",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [
             {
               "options": {
-                "0": { "color": "green", "index": 0, "text": "OK" },
-                "1": { "color": "red", "index": 1, "text": "ALARM" }
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "ALARM"
+                }
               },
               "type": "value"
             }
@@ -188,15 +278,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
       "id": 104,
       "interval": null,
       "links": [],
@@ -205,7 +306,13 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -229,12 +336,18 @@
       "description": "网络分区数量。0=正常，>=1 表示集群出现脑裂风险",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [
             {
               "options": {
-                "0": { "color": "green", "index": 0, "text": "OK" }
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK"
+                }
               },
               "type": "value"
             }
@@ -242,15 +355,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
       "id": 105,
       "interval": null,
       "links": [],
@@ -259,7 +383,13 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -283,20 +413,30 @@
       "description": "所选实例的队列消息总量（ready + unacknowledged）",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null }
+              {
+                "color": "green",
+                "value": null
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
       "id": 106,
       "interval": null,
       "links": [],
@@ -305,7 +445,13 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "pluginVersion": "7.1.4",
@@ -324,187 +470,19 @@
       "type": "stat"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "decimals": 0,
-      "description": "消息数最多的前 10 个队列（原版用 > 0 过滤会丢掉归零队列并造成图例闪烁，改用 topk(10)）",
-      "fieldConfig": {
-        "defaults": { "custom": {} },
-        "overrides": []
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
       },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 4 },
-      "hiddenSeries": false,
-      "id": 201,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": true,
-        "min": false,
-        "rightSide": false,
-        "show": true,
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "topk(10, rabbitmq_queue_messages{instance=~\"$instance\"})",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{queue}} ({{vhost}})",
-          "metric": "rabbitmq_queue_messages",
-          "refId": "A",
-          "step": 2
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Messages / Queue (Top 10)",
-      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 0,
-          "format": "short",
-          "label": "Messages",
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": { "align": false, "alignLevel": null }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "decimals": 0,
-      "description": "未确认消息体积最大的前 10 个队列。unack 持续偏高通常说明消费者处理慢或 prefetch 设置过大",
-      "fieldConfig": {
-        "defaults": { "custom": {}, "unit": "bytes" },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 4 },
-      "hiddenSeries": false,
-      "id": 202,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": true,
-        "min": false,
-        "rightSide": false,
-        "show": true,
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "topk(10, rabbitmq_queue_message_bytes_unacknowledged{instance=~\"$instance\"})",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{queue}} ({{vhost}})",
-          "metric": "rabbitmq_queue_message_bytes_unacknowledged",
-          "refId": "A",
-          "step": 2
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Queue Unacked Bytes (Top 10)",
-      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "bytes",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "id": 302,
+      "panels": [],
+      "title": "消息总量与速率",
+      "description": "按 vhost 汇总的消息堆积量与发布/投递速率，以及 Overview 集群级总量（可与概览区 Total Messages 交叉验证）",
+      "type": "row"
     },
     {
       "aliasColors": {},
@@ -515,12 +493,19 @@
       "decimals": 0,
       "description": "按 vhost 汇总的等待投递（ready）与未确认（unacked）消息数。原版把 published/delivered 两个计数器画成原始值是错误的，已拆分到下方的 Message Rates 面板用 rate() 展示",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 4 },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
       "hiddenSeries": false,
       "id": 203,
       "legend": {
@@ -576,7 +561,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Messages / Host (Ready & Unacked)",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -604,7 +593,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -615,12 +607,19 @@
       "decimals": 2,
       "description": "按 vhost 汇总的发布/投递/重投速率。published、delivered、redelivered 是 Counter 类型，必须用 rate() 换算成每秒速率，直接画原值只会单调递增、毫无意义（7.1.4 不支持 $__rate_interval，故固定 [5m] 窗口）",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 11 },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
       "hiddenSeries": false,
       "id": 204,
       "legend": {
@@ -686,7 +685,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Message Rates / Host (5m rate)",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -713,7 +716,1273 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 0,
+      "description": "exporter 从 /api/overview 抓取的集群级消息总量（全部 vhost 汇总）：ready / unacked / 总量。与顶部 Total Messages Stat 面板（sum 队列指标）口径一致，可交叉验证数据",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "hiddenSeries": false,
+      "id": 224,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "rabbitmq_queue_messages_total{instance=~\"$instance\"}",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "total",
+          "metric": "rabbitmq_queue_messages_total",
+          "refId": "A",
+          "step": 2
+        },
+        {
+          "expr": "rabbitmq_queue_messages_ready_total{instance=~\"$instance\"}",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "ready",
+          "metric": "rabbitmq_queue_messages_ready_total",
+          "refId": "B",
+          "step": 2
+        },
+        {
+          "expr": "rabbitmq_queue_messages_unacknowledged_total{instance=~\"$instance\"}",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "unacked",
+          "metric": "rabbitmq_queue_messages_unacknowledged_total",
+          "refId": "C",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Cluster Messages (Overview)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 303,
+      "panels": [],
+      "title": "队列深度 / 积压 / 消费者",
+      "description": "队列级明细：消息条数、字节、内存、消费者、持久化与内存驻留、队首消息年龄、消费利用率、磁盘 IO",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 0,
+      "description": "消息数最多的前 10 个队列（原版用 > 0 过滤会丢掉归零队列并造成图例闪烁，改用 topk(10)）",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "hiddenSeries": false,
+      "id": 201,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_messages{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_messages",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Messages / Queue (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "Messages",
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 0,
+      "description": "未确认消息体积最大的前 10 个队列。unack 持续偏高通常说明消费者处理慢或 prefetch 设置过大",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 19
+      },
+      "hiddenSeries": false,
+      "id": 202,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_message_bytes_unacknowledged{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_message_bytes_unacknowledged",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queue Unacked Bytes (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "消息体总大小最大的前 10 个队列（ready + unacked 的消息体之和，不含消息属性与协议开销）。结合 Messages / Queue (Top 10) 可判断是消息条数多还是单条消息大",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 19
+      },
+      "hiddenSeries": false,
+      "id": 215,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_message_bytes{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_message_bytes",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queue Message Bytes (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "Erlang 队列进程占用内存最大的前 10 个队列（含栈、堆及内部结构）。持续偏高说明队列内容常驻内存，可评估镜像/惰性队列或排查消息分页",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 216,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_memory{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_memory",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queue Memory (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "消费者数最多的前 10 个队列。重点排查：消息有积压但消费者为 0 的队列（常见于消费进程挂掉或未启动）",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 217,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_consumers{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_consumers",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queue Consumers (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "持久化消息与内存驻留消息最多的前 10 个队列。persistent 高说明落盘压力大；ram 高说明消息常驻内存，易触发内存告警",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 218,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_messages_persistent{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}}) : persistent",
+          "metric": "rabbitmq_queue_messages_persistent",
+          "refId": "A",
+          "step": 2
+        },
+        {
+          "expr": "topk(10, rabbitmq_queue_messages_ram{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}}) : ram",
+          "metric": "rabbitmq_queue_messages_ram",
+          "refId": "B",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Persistent & RAM Messages (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "队列可立即向消费者投递消息的时间占比（0~1）。低于 1 说明消费者受 prefetch 上限或网络拥塞限制，消费能力跟不上生产速度。注意：RabbitMQ 仅在利用率低于 1 时才上报该指标，消费正常时面板无数据属正常现象——此面板一旦出现数据，即说明消费能力已跟不上生产速度",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "hiddenSeries": false,
+      "id": 220,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rabbitmq_queue_consumer_utilisation{instance=~\"$instance\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}})",
+          "metric": "rabbitmq_queue_consumer_utilisation",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Consumer Utilisation (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": "1",
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "磁盘读写次数最多的前 10 个队列（每秒）。注意：非持久化队列出现磁盘写，通常是消息积压触发换页（paging to disk）的信号",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "hiddenSeries": false,
+      "id": 223,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rate(rabbitmq_queue_disk_reads{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}}) : reads/s",
+          "metric": "rabbitmq_queue_disk_reads",
+          "refId": "A",
+          "step": 2
+        },
+        {
+          "expr": "topk(10, rate(rabbitmq_queue_disk_writes{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{queue}} ({{vhost}}) : writes/s",
+          "metric": "rabbitmq_queue_disk_writes",
+          "refId": "B",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queue Disk I/O Rate (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "ops",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 304,
+      "panels": [],
+      "title": "交换机与路由",
+      "description": "交换机进出流量与 confirm/get/returned 速率，排查路由失效与消费模式问题",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "流量最大的前 10 个交换机的进/出速率（in 为发布到交换机的消息，out 为按路由规则转发出去的消息）。in 高 out 低通常意味着大量消息路由失败或堆积在下游队列",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "hiddenSeries": false,
+      "id": 222,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "topk(10, rate(rabbitmq_exchange_messages_published_in_total{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{exchange}} ({{vhost}}) : in",
+          "metric": "rabbitmq_exchange_messages_published_in_total",
+          "refId": "A",
+          "step": 2
+        },
+        {
+          "expr": "topk(10, rate(rabbitmq_exchange_messages_published_out_total{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{exchange}} ({{vhost}}) : out",
+          "metric": "rabbitmq_exchange_messages_published_out_total",
+          "refId": "B",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Exchange Publish In/Out Rate (Top 10)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "ops",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "按 vhost 汇总的三个关键 Counter 速率：confirmed（publisher confirm 确认）、get（basic.get 拉取模式投递）、returned（因路由不到队列被退回给发布者）。returned/s 持续 > 0 说明存在无效路由（exchange 未绑定或绑定键不匹配）",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "hiddenSeries": false,
+      "id": 221,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum by (vhost)(rate(rabbitmq_queue_messages_confirmed_total{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{vhost}} : confirm/s",
+          "metric": "rabbitmq_queue_messages_confirmed_total",
+          "refId": "A",
+          "step": 2
+        },
+        {
+          "expr": "sum by (vhost)(rate(rabbitmq_queue_messages_get_total{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{vhost}} : get/s",
+          "metric": "rabbitmq_queue_messages_get_total",
+          "refId": "B",
+          "step": 2
+        },
+        {
+          "expr": "sum by (vhost)(rate(rabbitmq_queue_messages_returned_total{instance=~\"$instance\"}[5m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{vhost}} : returned/s",
+          "metric": "rabbitmq_queue_messages_returned_total",
+          "refId": "C",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Confirm / Get / Returned Rates (5m rate)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "ops",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 305,
+      "panels": [],
+      "title": "节点资源与健康",
+      "description": "节点磁盘、内存、socket 与文件句柄水位及节点运行历史，提前发现资源告警风险",
+      "type": "row"
     },
     {
       "aliasColors": {},
@@ -724,12 +1993,20 @@
       "decimals": 0,
       "description": "各节点磁盘剩余空间与磁盘告警阈值。剩余空间逼近 limit 时将触发 disk_free_alarm 并阻塞写入",
       "fieldConfig": {
-        "defaults": { "custom": {}, "unit": "bytes" },
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 11 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 48
+      },
       "hiddenSeries": false,
       "id": 205,
       "legend": {
@@ -791,7 +2068,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Disk Free / Limit",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -818,7 +2099,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -828,12 +2112,20 @@
       "datasource": "Prometheus",
       "description": "各节点内存使用与内存告警阈值（limit）。used 持续逼近 limit 将触发 mem_alarm 并阻塞生产者",
       "fieldConfig": {
-        "defaults": { "custom": {}, "unit": "bytes" },
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 48
+      },
       "hiddenSeries": false,
       "id": 206,
       "legend": {
@@ -895,7 +2187,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Memory Used / Limit",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -922,7 +2218,118 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 0,
+      "description": "各节点运行状态时序图（0=停止 1=运行），用于回看节点重启/宕机时间点",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 48
+      },
+      "hiddenSeries": false,
+      "id": 214,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "/.*/",
+          "fill": 0,
+          "steppedLine": true
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "expr": "rabbitmq_running{instance=~\"$instance\"}",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{node}}",
+          "metric": "rabbitmq_running",
+          "refId": "A",
+          "step": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Node Running History",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": "1",
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -932,12 +2339,19 @@
       "datasource": "Prometheus",
       "description": "RabbitMQ 管理的网络套接字数量与上限。套接字用尽时 RabbitMQ 将拒绝新的网络连接",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 17 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 54
+      },
       "hiddenSeries": false,
       "id": 207,
       "legend": {
@@ -999,7 +2413,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Sockets Used / Total",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1027,7 +2445,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1037,12 +2458,19 @@
       "datasource": "Prometheus",
       "description": "文件描述符使用量与上限。fd 用尽将导致无法建立新连接/队列",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 17 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 54
+      },
       "hiddenSeries": false,
       "id": 208,
       "legend": {
@@ -1106,7 +2534,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "File Descriptors Used / Total",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1134,7 +2566,25 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "id": 306,
+      "panels": [],
+      "title": "连接与对象总数",
+      "description": "连接、通道、队列、交换机、消费者对象总数趋势，异常突增/骤降通常对应客户端故障或发布行为变化",
+      "type": "row"
     },
     {
       "aliasColors": {},
@@ -1145,12 +2595,19 @@
       "decimals": 0,
       "description": "打开的客户端连接总数",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 23 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 61
+      },
       "hiddenSeries": false,
       "id": 209,
       "legend": {
@@ -1194,7 +2651,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Connections",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1222,7 +2683,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1233,12 +2697,19 @@
       "decimals": 0,
       "description": "打开的 channel 总数。channel 数异常增长通常是客户端连接泄漏（未关闭 channel）",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 23 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 61
+      },
       "hiddenSeries": false,
       "id": 210,
       "legend": {
@@ -1282,7 +2753,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Channels",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1310,7 +2785,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1321,12 +2799,19 @@
       "decimals": 0,
       "description": "正在使用的队列总数",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 23 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 61
+      },
       "hiddenSeries": false,
       "id": 211,
       "legend": {
@@ -1370,7 +2855,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Queues",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1398,7 +2887,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1409,12 +2901,19 @@
       "decimals": 0,
       "description": "使用中的交换机总数",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 29 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 67
+      },
       "hiddenSeries": false,
       "id": 212,
       "legend": {
@@ -1458,7 +2957,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Exchanges",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1486,7 +2989,10 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1497,12 +3003,19 @@
       "decimals": 0,
       "description": "消息消费者总数。消费者数跌 0 是队列积压的常见原因",
       "fieldConfig": {
-        "defaults": { "custom": {} },
+        "defaults": {
+          "custom": {}
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 29 },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 67
+      },
       "hiddenSeries": false,
       "id": 213,
       "legend": {
@@ -1546,7 +3059,11 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Consumers",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1574,103 +3091,18 @@
           "show": false
         }
       ],
-      "yaxis": { "align": false, "alignLevel": null }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "decimals": 0,
-      "description": "各节点运行状态时序图（0=停止 1=运行），用于回看节点重启/宕机时间点",
-      "fieldConfig": {
-        "defaults": { "custom": {} },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 29 },
-      "hiddenSeries": false,
-      "id": 214,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": false,
-        "min": false,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [
-        { "alias": "/.*/", "fill": 0, "steppedLine": true }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": true,
-      "targets": [
-        {
-          "expr": "rabbitmq_running{instance=~\"$instance\"}",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{node}}",
-          "metric": "rabbitmq_running",
-          "refId": "A",
-          "step": 2
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Node Running History",
-      "tooltip": { "shared": true, "sort": 0, "value_type": "individual" },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 0,
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": "1",
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": { "align": false, "alignLevel": null }
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": "30s",
   "schemaVersion": 26,
   "style": "dark",
-  "tags": ["rabbitmq"],
+  "tags": [
+    "rabbitmq"
+  ],
   "templating": {
     "list": [
       {
@@ -1725,11 +3157,31 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
-    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
   },
   "timezone": "browser",
   "title": "RabbitMQ (Optimized)",
   "uid": "rmq-opt-4371",
-  "version": 1
+  "version": 5
 }

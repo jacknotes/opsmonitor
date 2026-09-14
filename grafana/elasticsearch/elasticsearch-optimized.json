@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "基于原版 ElasticSearch 面板（gnetId 6483）的优化版，指标基于 justwatch/elasticsearch_exporter。优化内容：修复 get_total 拼写错误、去除重复序列、Translog 面板改展示当前值（原版误用 irate）、Thread Pool queued 与 JVM 堆使用率带兜底修复；所有查询保持与原版一致的过滤行为。每个面板悬停标题旁的 i 图标可查看中文说明。",
+  "description": "面向 elasticsearch_exporter 1.7.0 优化的 Elasticsearch 监控面板（v4）。相对 v3：修正旧版指标名兜底（mem_res_bytes/max_file_descriptors/process_start_time/merges size_bytes 均已按 1.7.0 实测命名修正）、移除 ES5+ 恒为 0 的 filter cache 面板、修复 gauge 误用 irate（删除速率）与无 name 标签指标的查空过滤（活跃查询/Scroll 上下文），并新增节点分片数、查询/请求缓存命中率、Segments 内存构成、磁盘 I/O 面板。",
   "editable": true,
   "gnetId": 6483,
   "graphTooltip": 1,
@@ -215,7 +215,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
+        "w": 4,
         "x": 2,
         "y": 1
       },
@@ -318,7 +318,7 @@
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 5,
+        "x": 6,
         "y": 1
       },
       "height": "50",
@@ -413,7 +413,7 @@
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 8,
+        "x": 9,
         "y": 1
       },
       "height": "50",
@@ -509,7 +509,7 @@
       "gridPos": {
         "h": 3,
         "w": 2,
-        "x": 11,
+        "x": 12,
         "y": 1
       },
       "height": "50",
@@ -604,7 +604,7 @@
       "gridPos": {
         "h": 3,
         "w": 2,
-        "x": 13,
+        "x": 14,
         "y": 1
       },
       "height": "50",
@@ -699,7 +699,7 @@
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 15,
+        "x": 16,
         "y": 1
       },
       "height": "50",
@@ -793,8 +793,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 18,
+        "w": 5,
+        "x": 19,
         "y": 1
       },
       "height": "50",
@@ -855,13 +855,319 @@
       "description": "集群打开的文件句柄总数。接近操作系统 fd 上限会导致节点无法创建新连接/分片，需与系统 ulimit 对照。"
     },
     {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": false,
+      "colors": [
+        "rgba(245, 54, 54, 0.9)",
+        "rgba(237, 129, 40, 0.89)",
+        "rgba(50, 172, 45, 0.97)"
+      ],
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "format": "none",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 0,
+        "y": 4.0
+      },
+      "height": "50",
+      "id": 200,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": true,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": true
+      },
+      "tableColumn": "master count",
+      "targets": [
+        {
+          "expr": "count(count by (name) (elasticsearch_nodes_roles{instance=\"$instance\",cluster=\"$cluster\",role=\"master\"} == 1))",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "refId": "A",
+          "step": 20,
+          "instant": true,
+          "interval": ""
+        }
+      ],
+      "thresholds": "",
+      "title": "Master-eligible 节点数",
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        }
+      ],
+      "valueName": "avg",
+      "description": "当前所选 exporter 所在集群中 master-eligible（具备主节点资格）的节点数量。已按节点名去重且限定 instance（exporter 实例），同名集群（如多个默认名 elasticsearch）不会互相串数。候选节点数建议为奇数以防脑裂。注意：exporter 无\"当前当选 master\"指标，确认当前主节点请执行 GET /_cat/master。"
+    },
+    {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": true,
+      "colors": [
+        "#d44a3a",
+        "rgba(237, 129, 40, 0.89)",
+        "#299c46"
+      ],
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "format": "none",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 5,
+        "y": 4.0
+      },
+      "height": "50",
+      "id": 201,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": true,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": true
+      },
+      "tableColumn": "{app=\"hlog.hs.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "targets": [
+        {
+          "expr": "max(elasticsearch_cluster_health_number_of_in_flight_fetch{instance=\"$instance\",cluster=\"$cluster\"}) or on() vector(0)",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "refId": "A",
+          "step": 20,
+          "instant": true,
+          "interval": ""
+        }
+      ],
+      "thresholds": "2,4",
+      "title": "In-flight fetch 数",
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        },
+        {
+          "op": "=",
+          "text": "Green",
+          "value": "5"
+        },
+        {
+          "op": "=",
+          "text": "Yellow",
+          "value": "3"
+        },
+        {
+          "op": "=",
+          "text": "Red",
+          "value": "1"
+        }
+      ],
+      "valueName": "avg",
+      "description": "当前所选 exporter 所在集群正在执行的跨节点取回请求数（elasticsearch_cluster_health_number_of_in_flight_fetch），已限定 instance 防止同名集群串数。持续偏高说明实时读取压力大或抓取请求堆积。"
+    },
+    {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": true,
+      "colors": [
+        "#d44a3a",
+        "rgba(237, 129, 40, 0.89)",
+        "#299c46"
+      ],
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "format": "ms",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 10,
+        "y": 4.0
+      },
+      "height": "50",
+      "id": 202,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": true,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": true
+      },
+      "tableColumn": "{app=\"hlog.hs.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "targets": [
+        {
+          "expr": "max(elasticsearch_cluster_health_task_max_waiting_in_queue_millis{instance=\"$instance\",cluster=\"$cluster\"})",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "refId": "A",
+          "step": 20,
+          "instant": true,
+          "interval": ""
+        }
+      ],
+      "thresholds": "2,4",
+      "title": "任务队列最大等待",
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        },
+        {
+          "op": "=",
+          "text": "Green",
+          "value": "5"
+        },
+        {
+          "op": "=",
+          "text": "Yellow",
+          "value": "3"
+        },
+        {
+          "op": "=",
+          "text": "Red",
+          "value": "1"
+        }
+      ],
+      "valueName": "avg",
+      "description": "当前所选 exporter 所在集群管理任务队列的最大等待时间（elasticsearch_cluster_health_task_max_waiting_in_queue_millis），已限定 instance 防止同名集群串数。持续增长说明 master 处理 pending tasks 积压。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 11.0
       },
       "id": 91,
       "panels": [],
@@ -899,9 +1205,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
+        "w": 4,
         "x": 0,
-        "y": 5
+        "y": 12.0
       },
       "height": "50",
       "id": 11,
@@ -994,9 +1300,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 3,
-        "y": 5
+        "w": 4,
+        "x": 4,
+        "y": 12.0
       },
       "height": "50",
       "id": 39,
@@ -1088,9 +1394,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 6,
-        "y": 5
+        "w": 4,
+        "x": 8,
+        "y": 12.0
       },
       "height": "50",
       "id": 40,
@@ -1182,9 +1488,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 9,
-        "y": 5
+        "w": 4,
+        "x": 12,
+        "y": 12.0
       },
       "height": "50",
       "id": 41,
@@ -1276,9 +1582,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 12,
-        "y": 5
+        "w": 4,
+        "x": 16,
+        "y": 12.0
       },
       "height": "50",
       "id": 42,
@@ -1370,9 +1676,9 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 15,
-        "y": 5
+        "w": 4,
+        "x": 20,
+        "y": 12.0
       },
       "height": "50",
       "id": 82,
@@ -1442,7 +1748,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 23.0
       },
       "id": 92,
       "panels": [],
@@ -1472,7 +1778,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 24.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -1581,7 +1887,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 24.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -1670,13 +1976,116 @@
       "description": "各节点 GC 耗时速率（秒/秒），持续偏高说明 GC 压力大，结合上一个面板看。"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 31.0
+      },
+      "hiddenSeries": false,
+      "id": 210,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_jvm_buffer_pool_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{pool}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "JVM Buffer Pool 使用量",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "JVM 堆外 buffer pool 的已用内存（elasticsearch_jvm_buffer_pool_used_bytes，按 pool 类型拆分：direct 为堆外直接内存，mapped 为 mmap 文件映射）。若堆使用率不高但 RSS 持续增长，通常是堆外内存膨胀。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 38.0
       },
       "id": 93,
       "panels": [],
@@ -1703,7 +2112,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 39.0
       },
       "hiddenSeries": false,
       "id": 77,
@@ -1800,7 +2209,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 39.0
       },
       "hiddenSeries": false,
       "id": 78,
@@ -1886,7 +2295,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 46.0
       },
       "id": 94,
       "panels": [],
@@ -1913,7 +2322,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 47.0
       },
       "hiddenSeries": false,
       "id": 79,
@@ -1923,7 +2332,7 @@
         "current": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": null,
         "sortDesc": null,
@@ -2012,7 +2421,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 47.0
       },
       "hiddenSeries": false,
       "id": 80,
@@ -2022,7 +2431,7 @@
         "current": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "current",
         "sortDesc": true,
@@ -2107,7 +2516,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 54.0
       },
       "id": 95,
       "panels": [],
@@ -2137,7 +2546,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 33
+        "y": 55.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2269,7 +2678,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 33
+        "y": 55.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2379,7 +2788,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 33
+        "y": 55.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2504,7 +2913,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 33
+        "y": 55.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2617,9 +3026,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 6,
+        "w": 12,
         "x": 0,
-        "y": 40
+        "y": 62.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2741,9 +3150,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 40
+        "w": 12,
+        "x": 12,
+        "y": 62.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2843,13 +3252,528 @@
       "description": "节点间传输流量：上方为发送速率、下方为接收速率（取负便于区分方向），单位字节/秒。"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 69.0
+      },
+      "hiddenSeries": false,
+      "id": 203,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_os_cpu_percent{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "OS CPU 使用率",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "操作系统整体 CPU 使用率（elasticsearch_os_cpu_percent），含 ES 之外的其他进程，与 process CPU 面板对比可判断 CPU 消耗是否来自 ES 本身。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 69.0
+      },
+      "hiddenSeries": false,
+      "id": 204,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "100 * elasticsearch_os_mem_actual_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} / (elasticsearch_os_mem_actual_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} + elasticsearch_os_mem_actual_free_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}) or 100 * elasticsearch_os_mem_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} / (elasticsearch_os_mem_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} + elasticsearch_os_mem_free_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"})",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "OS 内存使用率",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "操作系统实际内存使用率：actual_used / (actual_used + actual_free)（elasticsearch_os_mem_actual_*_bytes）。若已关闭 swap 且无 page cache 需求，此值接近 100% 属正常（ES 会占用大量页缓存），需结合 swap 与 JVM 面板综合判断。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 69.0
+      },
+      "hiddenSeries": false,
+      "id": 206,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_process_mem_resident_size_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进程常驻内存 (RSS)",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "ES 进程的常驻物理内存大小（elasticsearch_process_mem_resident_size_bytes）。与 JVM 堆内存对比可看堆外内存占用。1.7.0 实测即为此命名（mem_res_bytes 兜底已移除）。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 69.0
+      },
+      "hiddenSeries": false,
+      "id": 207,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "100 * elasticsearch_process_open_files_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} / elasticsearch_process_max_files_descriptors{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "文件描述符使用率",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "已打开文件描述符占上限的比例：open_files / max_files_descriptors * 100。接近 100% 会报 Too many open files 错误，建议告警阈值 80%。1.7.0 上限指标名为 process_max_files_descriptors（旧名兜底已移除）。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 76.0
+      },
+      "hiddenSeries": false,
+      "id": 208,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_jvm_uptime_seconds{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "节点运行时长",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "dtdurations",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "节点 JVM 已运行时长（elasticsearch_jvm_uptime_seconds）。曲线骤降为 0 说明节点发生了重启，可结合告警定位异常重启。1.7.0 无 process_start_time_seconds，该兜底分支已移除。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 90.0
       },
       "id": 97,
       "panels": [],
@@ -2880,7 +3804,7 @@
         "h": 7,
         "w": 4,
         "x": 0,
-        "y": 48
+        "y": 91.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2990,7 +3914,7 @@
         "h": 7,
         "w": 5,
         "x": 4,
-        "y": 48
+        "y": 91.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3097,7 +4021,7 @@
         "h": 7,
         "w": 5,
         "x": 9,
-        "y": 48
+        "y": 91.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3206,7 +4130,7 @@
         "h": 7,
         "w": 5,
         "x": 14,
-        "y": 48
+        "y": 91.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3299,7 +4223,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "各节点删除文档速率。偏高说明存在大量删除/过期数据，注意磁盘空间回收（merge 后才真正释放）。",
+      "description": "各节点删除文档速率（irate of elasticsearch_indices_indexing_delete_total）。原版对 gauge 类指标 docs_deleted 做 irate 属误用，已改用删除操作计数器。偏高说明存在大量删除/过期数据，注意磁盘空间回收（merge 后才真正释放）。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -3315,7 +4239,7 @@
         "h": 7,
         "w": 5,
         "x": 19,
-        "y": 48
+        "y": 91.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3350,7 +4274,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(elasticsearch_indices_docs_deleted{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
+          "expr": "irate(elasticsearch_indices_indexing_delete_total{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -3403,13 +4327,219 @@
       }
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 98.0
+      },
+      "hiddenSeries": false,
+      "id": 212,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_indices_merges_current{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{index}} merges",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进行中的合并数",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "当前正在进行的段合并数量（elasticsearch_indices_merges_current）。突然升高通常由大批量写入或强制 merge 引发，会挤占 IO 与 CPU。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 98.0
+      },
+      "hiddenSeries": false,
+      "id": 213,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_indices_merges_current_size_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进行中的合并大小",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "当前正在合并的 segment 总大小（elasticsearch_indices_merges_current_size_in_bytes），用于评估合并产生的 IO 压力规模。1.7.0 确认使用 _in_bytes 命名（旧名 size_bytes 兜底已移除）。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 55
+        "y": 105.0
       },
       "id": 98,
       "panels": [],
@@ -3439,7 +4569,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 56
+        "y": 106.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3546,7 +4676,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 56
+        "y": 106.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3653,7 +4783,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 56
+        "y": 106.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3762,7 +4892,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 56
+        "y": 106.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3851,13 +4981,425 @@
       "description": "存储层限流（throttle）耗时速率。大于 0 说明磁盘 IO 跟不上写入，ES 在主动限流。"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 113.0
+      },
+      "hiddenSeries": false,
+      "id": 214,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "irate(elasticsearch_indices_search_scroll_total{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Scroll 查询速率",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "scroll（深度分页/导出）请求速率（irate of elasticsearch_indices_search_scroll_total）。scroll 消耗大量堆内 search 上下文，出现意外增长需排查大分页导出行为。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 113.0
+      },
+      "hiddenSeries": false,
+      "id": 215,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "irate(elasticsearch_indices_search_scroll_time_seconds{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Scroll 查询耗时",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "s",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "scroll 请求耗时增速（irate of elasticsearch_indices_search_scroll_time_seconds），单位秒/秒即平均每秒花在 scroll 上的时间。持续偏高说明存在大结果集遍历。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 113.0
+      },
+      "hiddenSeries": false,
+      "id": 300,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_search_active_queries{instance=\"$instance\",cluster=\"$cluster\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "活跃查询数",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "集群当前正在执行的查询数量（elasticsearch_search_active_queries）。该指标仅含 cluster/index 标签、无 name 标签（原查询的 name 过滤会导致永远无数据，已移除），按索引展示。与查询速率面板对照：速率平稳但活跃数持续增长说明有慢查询堆积。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 113.0
+      },
+      "hiddenSeries": false,
+      "id": 301,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_index_stats_search_scroll_current{instance=\"$instance\",cluster=\"$cluster\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "活跃 Scroll 上下文",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "当前打开的 scroll 上下文数量（elasticsearch_index_stats_search_scroll_current）。该指标仅含 cluster/index 标签、无 name 标签（原查询的 name 过滤会导致永远无数据，已移除），按索引展示。scroll 未正常释放会持续占用堆内存并触发 search 上下文告警。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 120.0
       },
       "id": 99,
       "panels": [],
@@ -3887,7 +5429,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 64
+        "y": 121.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3900,7 +5442,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -4068,7 +5610,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 64
+        "y": 121.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4081,7 +5623,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -4235,7 +5777,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 128.0
       },
       "id": 100,
       "panels": [],
@@ -4264,7 +5806,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 72
+        "y": 129.0
       },
       "hiddenSeries": false,
       "id": 45,
@@ -4367,7 +5909,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 72
+        "y": 129.0
       },
       "hiddenSeries": false,
       "id": 46,
@@ -4399,7 +5941,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "elasticsearch_thread_pool_queue_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"} or elasticsearch_thread_pool_active_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "expr": "elasticsearch_thread_pool_queue_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{name}}: {{ type }}",
@@ -4448,7 +5990,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点各线程池的排队任务数（原版误用了 active_count，与\"threads active\"面板重复；此处优先使用 queue_count，若 exporter 无该指标自动回退为 active_count）。"
+      "description": "各节点各线程池的排队任务数（elasticsearch_thread_pool_queue_count）。原版的 or active_count 兜底在两个指标并存时永远不生效（or 只返回左侧），已移除；活跃线程数请看 threads active 面板。"
     },
     {
       "aliasColors": {},
@@ -4470,7 +6012,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 72
+        "y": 129.0
       },
       "height": "",
       "hiddenSeries": false,
@@ -4574,7 +6116,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 72
+        "y": 129.0
       },
       "hiddenSeries": false,
       "id": 44,
@@ -4658,20 +6200,123 @@
       "description": "各节点各线程池的完成操作速率（次/秒）。"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 136.0
+      },
+      "hiddenSeries": false,
+      "id": 211,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_thread_pool_threads_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{type}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Thread Pool 线程总数",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "各线程池当前线程总数（elasticsearch_thread_pool_threads_count）。与 active 数对比可看出线程池容量利用情况，配合 rejected/queued 面板定位线程池饱和问题。"
+    },
+    {
       "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 143.0
       },
       "id": 101,
       "panels": [],
       "repeat": null,
       "title": "Caches",
       "type": "row",
-      "description": "【Caches 缓存】fielddata/query cache/filter cache 的占用与驱逐。"
+      "description": "【Caches 缓存】fielddata/query cache/request cache 的占用、驱逐与命中率。"
     },
     {
       "aliasColors": {},
@@ -4692,9 +6337,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 4,
+        "w": 5,
         "x": 0,
-        "y": 80
+        "y": 144.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4801,9 +6446,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 5,
-        "x": 4,
-        "y": 80
+        "w": 7,
+        "x": 5,
+        "y": 144.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4910,9 +6555,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 5,
-        "x": 9,
-        "y": 80
+        "w": 6,
+        "x": 12,
+        "y": 144.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -5019,9 +6664,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 5,
-        "x": 14,
-        "y": 80
+        "w": 6,
+        "x": 18,
+        "y": 144.0
       },
       "height": "400",
       "hiddenSeries": false,
@@ -5125,25 +6770,21 @@
       },
       "fill": 1,
       "fillGradient": 0,
-      "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 5,
-        "x": 19,
-        "y": 80
+        "w": 12,
+        "x": 0,
+        "y": 151.0
       },
-      "height": "400",
       "hiddenSeries": false,
-      "id": 84,
+      "id": 216,
       "legend": {
         "alignAsTable": true,
         "avg": true,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
+        "current": false,
+        "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5161,16 +6802,14 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": true,
+      "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(elasticsearch_indices_filter_cache_evictions{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
+          "expr": "elasticsearch_indices_request_cache_memory_size_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
           "format": "time_series",
-          "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}",
-          "metric": "",
+          "legendFormat": "{{name}}: {{index}}",
           "refId": "A",
           "step": 20
         }
@@ -5179,12 +6818,12 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Evictions from filter cache",
+      "title": "Request cache 内存占用",
       "tooltip": {
         "msResolution": false,
         "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
+        "sort": 2,
+        "value_type": "individual"
       },
       "type": "graph",
       "xaxis": {
@@ -5196,8 +6835,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": "Evictions/s",
+          "format": "bytes",
+          "label": null,
           "logBase": 1,
           "max": null,
           "min": null,
@@ -5209,14 +6848,117 @@
           "logBase": 1,
           "max": null,
           "min": null,
-          "show": false
+          "show": true
         }
       ],
       "yaxis": {
         "align": false,
         "alignLevel": null
       },
-      "description": "filter cache 驱逐速率（次/秒）。该缓存为 ES 2.x/5.x 时代的指标，新版本集群可能无数据。"
+      "description": "请求缓存（shard request cache）内存占用（elasticsearch_indices_request_cache_memory_size_bytes）。持续增长接近限制会触发驱逐，影响重复查询性能。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 151.0
+      },
+      "hiddenSeries": false,
+      "id": 217,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "irate(elasticsearch_indices_request_cache_evictions{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}: {{index}}",
+          "refId": "A",
+          "step": 20
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Request cache 驱逐速率",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "请求缓存驱逐速率（rate of elasticsearch_indices_request_cache_evictions）。驱逐频繁说明缓存空间不足或数据频繁变化导致失效。"
     },
     {
       "collapsed": false,
@@ -5225,7 +6967,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 87
+        "y": 164.0
       },
       "id": 102,
       "panels": [],
@@ -5252,7 +6994,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 88
+        "y": 165.0
       },
       "hiddenSeries": false,
       "id": 85,
@@ -5262,7 +7004,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5351,7 +7093,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 88
+        "y": 165.0
       },
       "hiddenSeries": false,
       "id": 86,
@@ -5361,7 +7103,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5439,7 +7181,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 178.0
       },
       "id": 103,
       "panels": [],
@@ -5466,7 +7208,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 95
+        "y": 179.0
       },
       "hiddenSeries": false,
       "id": 75,
@@ -5476,7 +7218,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5565,7 +7307,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 95
+        "y": 179.0
       },
       "hiddenSeries": false,
       "id": 83,
@@ -5575,7 +7317,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5662,9 +7404,9 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 6,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 102
+        "y": 186.0
       },
       "hiddenSeries": false,
       "id": 76,
@@ -5674,7 +7416,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5752,7 +7494,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 108
+        "y": 192.0
       },
       "id": 104,
       "panels": [],
@@ -5779,7 +7521,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 109
+        "y": 193.0
       },
       "hiddenSeries": false,
       "id": 61,
@@ -5790,7 +7532,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5879,7 +7621,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 109
+        "y": 193.0
       },
       "hiddenSeries": false,
       "id": 62,
@@ -5890,7 +7632,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -5968,7 +7710,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 116
+        "y": 200.0
       },
       "id": 105,
       "panels": [],
@@ -5995,7 +7737,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 117
+        "y": 201.0
       },
       "hiddenSeries": false,
       "id": 55,
@@ -6005,7 +7747,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": null,
         "sortDesc": null,
@@ -6094,7 +7836,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 117
+        "y": 201.0
       },
       "hiddenSeries": false,
       "id": 56,
@@ -6104,7 +7846,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6193,7 +7935,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 124
+        "y": 208.0
       },
       "hiddenSeries": false,
       "id": 65,
@@ -6203,7 +7945,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6292,7 +8034,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 124
+        "y": 208.0
       },
       "hiddenSeries": false,
       "id": 66,
@@ -6302,7 +8044,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6380,7 +8122,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 131
+        "y": 215.0
       },
       "id": 106,
       "panels": [],
@@ -6407,7 +8149,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 132
+        "y": 216.0
       },
       "hiddenSeries": false,
       "id": 57,
@@ -6417,7 +8159,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6506,7 +8248,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 132
+        "y": 216.0
       },
       "hiddenSeries": false,
       "id": 58,
@@ -6516,7 +8258,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6594,7 +8336,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 139
+        "y": 223.0
       },
       "id": 107,
       "panels": [],
@@ -6621,7 +8363,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 140
+        "y": 224.0
       },
       "hiddenSeries": false,
       "id": 59,
@@ -6631,7 +8373,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6720,7 +8462,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 140
+        "y": 224.0
       },
       "hiddenSeries": false,
       "id": 60,
@@ -6730,7 +8472,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6808,7 +8550,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 147
+        "y": 231.0
       },
       "id": 108,
       "panels": [],
@@ -6835,7 +8577,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 148
+        "y": 232.0
       },
       "hiddenSeries": false,
       "id": 63,
@@ -6845,7 +8587,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -6934,7 +8676,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 148
+        "y": 232.0
       },
       "hiddenSeries": false,
       "id": 64,
@@ -6944,7 +8686,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7022,7 +8764,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 155
+        "y": 239.0
       },
       "id": 109,
       "panels": [],
@@ -7049,7 +8791,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 156
+        "y": 240.0
       },
       "hiddenSeries": false,
       "id": 67,
@@ -7059,7 +8801,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7148,7 +8890,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 156
+        "y": 240.0
       },
       "hiddenSeries": false,
       "id": 68,
@@ -7158,7 +8900,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7236,7 +8978,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 163
+        "y": 247.0
       },
       "id": 110,
       "panels": [],
@@ -7263,7 +9005,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 164
+        "y": 248.0
       },
       "hiddenSeries": false,
       "id": 69,
@@ -7273,7 +9015,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7362,7 +9104,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 164
+        "y": 248.0
       },
       "hiddenSeries": false,
       "id": 70,
@@ -7372,7 +9114,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7450,7 +9192,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 171
+        "y": 255.0
       },
       "id": 111,
       "panels": [],
@@ -7477,7 +9219,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 172
+        "y": 256.0
       },
       "hiddenSeries": false,
       "id": 71,
@@ -7487,7 +9229,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7576,7 +9318,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 172
+        "y": 256.0
       },
       "hiddenSeries": false,
       "id": 72,
@@ -7586,7 +9328,7 @@
         "current": false,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7619,7 +9361,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Number of terms with all shards on all nodes in bytes",
+      "title": "Size of terms with all shards on all nodes in bytes",
       "tooltip": {
         "shared": true,
         "sort": 2,
@@ -7664,7 +9406,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 179
+        "y": 263.0
       },
       "id": 112,
       "panels": [],
@@ -7691,7 +9433,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 180
+        "y": 264.0
       },
       "hiddenSeries": false,
       "id": 73,
@@ -7702,7 +9444,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7791,7 +9533,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 180
+        "y": 264.0
       },
       "hiddenSeries": false,
       "id": 74,
@@ -7802,7 +9544,7 @@
         "hideZero": true,
         "max": true,
         "min": true,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "sort": "avg",
         "sortDesc": true,
@@ -7872,6 +9614,814 @@
         "alignLevel": null
       },
       "description": "各索引含副本的 version map 内存占用（字节）。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 15.0
+      },
+      "hiddenSeries": false,
+      "id": 320,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_node_shards_total{instance=\"$instance\",cluster=\"$cluster\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各节点分片数",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "各节点当前承载的分片数量（elasticsearch_node_shards_total）。该指标无 name 标签、按 node 标签展示，用于观察分片分布是否均衡；单节点分片数异常偏多时注意热点。需 exporter 1.7+（现已全部满足）。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 83.0
+      },
+      "hiddenSeries": false,
+      "id": 324,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "irate(elasticsearch_filesystem_io_stats_device_read_size_kilobytes_sum{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) * 1024",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "read {{name}} {{device}}",
+          "refId": "A"
+        },
+        {
+          "expr": "irate(elasticsearch_filesystem_io_stats_device_write_size_kilobytes_sum{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) * 1024",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "write {{name}} {{device}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "磁盘 I/O 速率",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "Bps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "数据目录所在块设备的读/写速率（1.7.0 新增的 elasticsearch_filesystem_io_stats_device_*_size_kilobytes_sum，KB 计数器已换算为字节/秒，每设备一条曲线）。与索引写入速率、merge 面板对照可定位磁盘瓶颈。注意：该指标依赖 ES 能从 /proc/diskstats 采集设备 IO 统计，部分文件系统/容器挂载环境拿不到设备信息，此时面板 No data 属环境限制而非故障，可观察一段时间确认。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 158.0
+      },
+      "hiddenSeries": false,
+      "id": 321,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "100 * rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) / ignoring(cache) clamp_min((rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) + ignoring(cache) rate(elasticsearch_indices_query_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])), 1e-10)",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "查询缓存命中率",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "query cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_query_cache_count 与 query_miss_count）。已用 ignoring(cache) 处理 hit/miss 序列 cache 标签不一致导致的无法匹配问题；集群无查询缓存活动时显示 0%（分母已做保护，不会再 No data）。命中率低且驱逐频繁说明缓存空间不足或查询模式过于随机。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 158.0
+      },
+      "hiddenSeries": false,
+      "id": 322,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "100 * rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) / ignoring(cache) clamp_min((rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) + ignoring(cache) rate(elasticsearch_indices_request_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])), 1e-10)",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "请求缓存命中率",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "shard request cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_request_cache_count 与 request_miss_count）。已用 ignoring(cache) 处理 hit/miss 序列 cache 标签不一致导致的无法匹配问题；无请求缓存活动时显示 0%（分母已做保护，不会再 No data）。请求缓存只对显式开启 request_cache 的查询生效，长期 0% 且业务没用 request_cache 属正常。"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 171.0
+      },
+      "hiddenSeries": false,
+      "id": 323,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "elasticsearch_indices_segments_terms_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "terms {{name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_stored_fields_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "fields {{name}}",
+          "refId": "B"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_doc_values_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "doc_values {{name}}",
+          "refId": "C"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_norms_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "norms {{name}}",
+          "refId": "D"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_points_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "points {{name}}",
+          "refId": "E"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_version_map_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "version_map {{name}}",
+          "refId": "F"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_index_writer_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "index_writer {{name}}",
+          "refId": "G"
+        },
+        {
+          "expr": "elasticsearch_indices_segments_fixed_bit_set_memory_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "fixed_bit_set {{name}}",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Segments 内存构成明细",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "节点级 segment 内存构成（堆叠图，1.7.0 的 elasticsearch_indices_segments_*_memory_in_bytes 系列）：terms 倒排、fields 存储字段、doc_values 列存、norms、points 数值索引、version map、index writer、fixed bit set。与右侧总量面板对照，可判断段内存大头在哪儿，指导索引优化（如字段类型、force merge）。"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "显示当前所选 exporter 所在集群中所有 master-eligible（候选主）节点的名称（elasticsearch_nodes_roles{role=\"master\"}），已按节点名去重并限定 instance（exporter 实例），同名集群的节点不会混入。方块个数即候选节点数量，建议保持奇数以防脑裂。注意：elasticsearch_exporter 没有\"当前当选 master\"指标，如需确认当前主节点请执行 GET /_cat/master。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 15,
+        "y": 4.0
+      },
+      "id": 330,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count by (name) (elasticsearch_nodes_roles{instance=\"$instance\",cluster=\"$cluster\",role=\"master\"} == bool 1)",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Master-eligible 节点",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "显示当前在线（JVM 存活，elasticsearch_jvm_uptime_seconds 存在）的节点名称，已按节点名去重，多个 exporter 抓取同一集群时每个节点只显示一次，方块个数即在线节点数；节点掉线时其名称会从列表消失，可快速定位是哪台节点离开。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 4.0
+      },
+      "id": 331,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count by (name) (elasticsearch_jvm_uptime_seconds{instance=\"$instance\",cluster=\"$cluster\"})",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "集群在线节点",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "每个集群一行：节点数量（按节点名去重）与采集该集群的 Exporter 实例个数。右侧“Exporter 实例明细”面板可展开查看具体实例 IP 与节点名。（Grafana 7.1.4 无法把多个实例 IP 拼接进同一单元格）",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "id": 351,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "集群名称"
+          }
+        ]
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count by (cluster) (max by (cluster, name) (elasticsearch_nodes_roles{job=\"$job\"}))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "count by (cluster) (max by (cluster, instance) (elasticsearch_nodes_roles{job=\"$job\"}))",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "集群列表",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "cluster": "集群名称",
+              "Value #A": "节点数量",
+              "Value #B": "Exporter 实例数"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "每个 Exporter 实例 × 其采集到的节点一行，用于查看集群列表背后的具体实例 IP 与节点名。同一集群被多个 exporter 抓取时会重复列出其可见的节点，属正常现象。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "y": 7,
+        "h": 4,
+        "x": 12,
+        "w": 12
+      },
+      "id": 353,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "集群名称"
+          }
+        ]
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "max by (cluster, instance, name) (elasticsearch_nodes_roles{job=\"$job\"})",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Exporter 实例明细",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Value": true,
+              "Time": true
+            },
+            "indexByName": [
+              "cluster",
+              "instance",
+              "name"
+            ],
+            "renameByName": {
+              "name": "节点名称",
+              "cluster": "集群名称",
+              "instance": "Exporter 实例"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "refresh": false,
@@ -7913,18 +10463,18 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "hlog",
-          "value": "hlog"
+          "text": "192.168.13.198:9108",
+          "value": "192.168.13.198:9108"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(elasticsearch_indices_docs{job=\"$job\"},cluster)",
+        "definition": "label_values(elasticsearch_indices_docs{job=\"$job\",cluster=\"$cluster\", name!=\"\"},instance)",
         "hide": 0,
         "includeAll": false,
-        "label": "Cluster",
+        "label": "Exporter 实例（先选这个：同名集群靠它区分）",
         "multi": false,
-        "name": "cluster",
+        "name": "instance",
         "options": [],
-        "query": "label_values(elasticsearch_indices_docs{job=\"$job\"},cluster)",
+        "query": "label_values(elasticsearch_indices_docs{job=\"$job\", name!=\"\"}, instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -7939,18 +10489,18 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.198:9108",
-          "value": "192.168.13.198:9108"
+          "text": "hlog",
+          "value": "hlog"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(elasticsearch_indices_docs{job=\"$job\",cluster=\"$cluster\", name!=\"\"},instance)",
+        "definition": "label_values(elasticsearch_indices_docs{job=\"$job\"},cluster)",
         "hide": 0,
         "includeAll": false,
-        "label": "Source of metrics",
+        "label": "集群名（随所选 Exporter 自动带出）",
         "multi": false,
-        "name": "instance",
+        "name": "cluster",
         "options": [],
-        "query": "label_values(elasticsearch_indices_docs{job=\"$job\",cluster=\"$cluster\", name!=\"\"},instance)",
+        "query": "label_values(elasticsearch_indices_docs{job=\"$job\", instance=\"$instance\"}, cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -8071,6 +10621,6 @@
   },
   "timezone": "browser",
   "title": "ElasticSearch (Optimized)",
-  "uid": "es-opt-6483",
-  "version": 1
+  "uid": "es-opt4-6483",
+  "version": 18
 }
