@@ -882,7 +882,7 @@
         "h": 3,
         "w": 5,
         "x": 0,
-        "y": 4.0
+        "y": 4
       },
       "height": "50",
       "id": 200,
@@ -974,7 +974,7 @@
         "h": 3,
         "w": 5,
         "x": 5,
-        "y": 4.0
+        "y": 4
       },
       "height": "50",
       "id": 201,
@@ -1081,7 +1081,7 @@
         "h": 3,
         "w": 5,
         "x": 10,
-        "y": 4.0
+        "y": 4
       },
       "height": "50",
       "id": 202,
@@ -1167,7 +1167,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11.0
+        "y": 11
       },
       "id": 91,
       "panels": [],
@@ -1207,7 +1207,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 11,
@@ -1302,7 +1302,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 39,
@@ -1396,7 +1396,7 @@
         "h": 3,
         "w": 4,
         "x": 8,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 40,
@@ -1490,7 +1490,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 41,
@@ -1584,7 +1584,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 42,
@@ -1678,7 +1678,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 12.0
+        "y": 12
       },
       "height": "50",
       "id": 82,
@@ -1748,7 +1748,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23.0
+        "y": 23
       },
       "id": 92,
       "panels": [],
@@ -1778,7 +1778,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 24.0
+        "y": 24
       },
       "height": "400",
       "hiddenSeries": false,
@@ -1887,7 +1887,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 24.0
+        "y": 24
       },
       "height": "400",
       "hiddenSeries": false,
@@ -1995,7 +1995,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 31.0
+        "y": 31
       },
       "hiddenSeries": false,
       "id": 210,
@@ -2030,7 +2030,7 @@
           "expr": "elasticsearch_jvm_buffer_pool_used_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{pool}}",
+          "legendFormat": "{{name}}（{{type}}）",
           "refId": "A",
           "step": 20
         }
@@ -2076,7 +2076,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "JVM 堆外 buffer pool 的已用内存（elasticsearch_jvm_buffer_pool_used_bytes，按 pool 类型拆分：direct 为堆外直接内存，mapped 为 mmap 文件映射）。若堆使用率不高但 RSS 持续增长，通常是堆外内存膨胀。"
+      "description": "JVM 堆外 buffer pool 的已用内存（elasticsearch_jvm_buffer_pool_used_bytes，按 type 标签拆分：direct 为堆外直接内存，mapped 为 mmap 文件映射）。若堆使用率不高但节点内存持续增长，通常是堆外内存膨胀。图例中直接内存(direct)/文件映射(mapped)已用节点名+类型标注。"
     },
     {
       "collapsed": false,
@@ -2085,7 +2085,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38.0
+        "y": 38
       },
       "id": 93,
       "panels": [],
@@ -2112,7 +2112,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 39.0
+        "y": 39
       },
       "hiddenSeries": false,
       "id": 77,
@@ -2209,7 +2209,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 39.0
+        "y": 39
       },
       "hiddenSeries": false,
       "id": 78,
@@ -2295,7 +2295,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46.0
+        "y": 46
       },
       "id": 94,
       "panels": [],
@@ -2322,7 +2322,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 47.0
+        "y": 47
       },
       "hiddenSeries": false,
       "id": 79,
@@ -2421,7 +2421,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 47.0
+        "y": 47
       },
       "hiddenSeries": false,
       "id": 80,
@@ -2516,7 +2516,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54.0
+        "y": 54
       },
       "id": 95,
       "panels": [],
@@ -2546,7 +2546,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 55.0
+        "y": 55
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2678,7 +2678,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 55.0
+        "y": 55
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2788,7 +2788,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 55.0
+        "y": 55
       },
       "height": "400",
       "hiddenSeries": false,
@@ -2913,7 +2913,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 55.0
+        "y": 55
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3028,7 +3028,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 62.0
+        "y": 62
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3152,7 +3152,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 62.0
+        "y": 62
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3271,7 +3271,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 69.0
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 203,
@@ -3374,7 +3374,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 69.0
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 204,
@@ -3477,7 +3477,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 69.0
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 206,
@@ -3514,6 +3514,14 @@
           "intervalFactor": 2,
           "legendFormat": "{{name}}",
           "refId": "A",
+          "step": 20
+        },
+        {
+          "refId": "B",
+          "expr": "elasticsearch_process_mem_virtual_size_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
+          "legendFormat": "{{name}} 虚拟内存(Virtual)",
+          "format": "time_series",
+          "intervalFactor": 2,
           "step": 20
         }
       ],
@@ -3558,7 +3566,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "ES 进程的常驻物理内存大小（elasticsearch_process_mem_resident_size_bytes）。与 JVM 堆内存对比可看堆外内存占用。1.7.0 实测即为此命名（mem_res_bytes 兜底已移除）。"
+      "description": "ES 进程内存（elasticsearch_process_mem_resident_size_bytes 与 process_mem_virtual_size_bytes）。注意：当前 ES 版本下 resident(RSS) 实测恒为 0（三个环境 1.7.0 exporter 均如此，ES 不再返回该值），请以虚拟内存曲线为准；与 JVM 堆内存对比可看堆外内存占用。"
     },
     {
       "aliasColors": {},
@@ -3580,7 +3588,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 69.0
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 207,
@@ -3683,7 +3691,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 76.0
+        "y": 76
       },
       "hiddenSeries": false,
       "id": 208,
@@ -3773,7 +3781,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 90.0
+        "y": 90
       },
       "id": 97,
       "panels": [],
@@ -3804,7 +3812,7 @@
         "h": 7,
         "w": 4,
         "x": 0,
-        "y": 91.0
+        "y": 91
       },
       "height": "400",
       "hiddenSeries": false,
@@ -3914,7 +3922,7 @@
         "h": 7,
         "w": 5,
         "x": 4,
-        "y": 91.0
+        "y": 91
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4021,7 +4029,7 @@
         "h": 7,
         "w": 5,
         "x": 9,
-        "y": 91.0
+        "y": 91
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4130,7 +4138,7 @@
         "h": 7,
         "w": 5,
         "x": 14,
-        "y": 91.0
+        "y": 91
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4239,7 +4247,7 @@
         "h": 7,
         "w": 5,
         "x": 19,
-        "y": 91.0
+        "y": 91
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4346,7 +4354,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 98.0
+        "y": 98
       },
       "hiddenSeries": false,
       "id": 212,
@@ -4381,7 +4389,7 @@
           "expr": "elasticsearch_indices_merges_current{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{index}} merges",
+          "legendFormat": "{{name}}",
           "refId": "A",
           "step": 20
         }
@@ -4427,7 +4435,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "当前正在进行的段合并数量（elasticsearch_indices_merges_current）。突然升高通常由大批量写入或强制 merge 引发，会挤占 IO 与 CPU。"
+      "description": "各节点当前正在进行的段合并数量（elasticsearch_indices_merges_current，节点级指标）。突然升高通常由大批量写入或强制 merge 引发，会挤占 IO 与 CPU；空闲集群恒为 0 属正常。"
     },
     {
       "aliasColors": {},
@@ -4449,7 +4457,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 98.0
+        "y": 98
       },
       "hiddenSeries": false,
       "id": 213,
@@ -4484,7 +4492,7 @@
           "expr": "elasticsearch_indices_merges_current_size_in_bytes{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{index}}",
+          "legendFormat": "{{name}}",
           "refId": "A",
           "step": 20
         }
@@ -4530,7 +4538,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "当前正在合并的 segment 总大小（elasticsearch_indices_merges_current_size_in_bytes），用于评估合并产生的 IO 压力规模。1.7.0 确认使用 _in_bytes 命名（旧名 size_bytes 兜底已移除）。"
+      "description": "各节点当前正在合并的 segment 总大小（elasticsearch_indices_merges_current_size_in_bytes，节点级指标），用于评估合并产生的 IO 压力规模；空闲集群恒为 0 属正常。1.7.0 确认使用 _in_bytes 命名。"
     },
     {
       "collapsed": false,
@@ -4539,7 +4547,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 105.0
+        "y": 105
       },
       "id": 98,
       "panels": [],
@@ -4569,7 +4577,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 106.0
+        "y": 106
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4676,7 +4684,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 106.0
+        "y": 106
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4783,7 +4791,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 106.0
+        "y": 106
       },
       "height": "400",
       "hiddenSeries": false,
@@ -4892,7 +4900,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 106.0
+        "y": 106
       },
       "height": "400",
       "hiddenSeries": false,
@@ -5000,7 +5008,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 113.0
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 214,
@@ -5008,7 +5016,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -5035,7 +5043,7 @@
           "expr": "irate(elasticsearch_indices_search_scroll_total{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{index}}",
+          "legendFormat": "{{name}}",
           "refId": "A",
           "step": 20
         }
@@ -5081,7 +5089,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "scroll（深度分页/导出）请求速率（irate of elasticsearch_indices_search_scroll_total）。scroll 消耗大量堆内 search 上下文，出现意外增长需排查大分页导出行为。"
+      "description": "各节点 scroll（深度分页/导出）请求速率（irate of elasticsearch_indices_search_scroll_total，节点级指标）。scroll 消耗大量堆内 search 上下文，出现意外增长需排查大分页导出行为。"
     },
     {
       "aliasColors": {},
@@ -5103,7 +5111,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 113.0
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 215,
@@ -5111,7 +5119,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -5138,7 +5146,7 @@
           "expr": "irate(elasticsearch_indices_search_scroll_time_seconds{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{index}}",
+          "legendFormat": "{{name}}",
           "refId": "A",
           "step": 20
         }
@@ -5184,7 +5192,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "scroll 请求耗时增速（irate of elasticsearch_indices_search_scroll_time_seconds），单位秒/秒即平均每秒花在 scroll 上的时间。持续偏高说明存在大结果集遍历。"
+      "description": "各节点 scroll 请求耗时增速（irate of elasticsearch_indices_search_scroll_time_seconds，节点级指标），单位秒/秒即平均每秒花在 scroll 上的时间；持续偏高说明存在大结果集遍历。"
     },
     {
       "aliasColors": {},
@@ -5206,7 +5214,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 113.0
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 300,
@@ -5214,7 +5222,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -5238,10 +5246,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "elasticsearch_search_active_queries{instance=\"$instance\",cluster=\"$cluster\"}",
+          "expr": "sum(elasticsearch_search_active_queries{instance=\"$instance\",cluster=\"$cluster\"}) or vector(0)",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{index}}",
+          "legendFormat": "集群总活跃查询数",
           "refId": "A",
           "step": 20
         }
@@ -5287,7 +5295,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "集群当前正在执行的查询数量（elasticsearch_search_active_queries）。该指标仅含 cluster/index 标签、无 name 标签（原查询的 name 过滤会导致永远无数据，已移除），按索引展示。与查询速率面板对照：速率平稳但活跃数持续增长说明有慢查询堆积。"
+      "description": "集群当前正在执行的查询总数（sum of elasticsearch_search_active_queries，该指标只有 cluster/index 标签）。原按索引拆分时 172 环境会产生 110+ 条恒 0 序列难以判读，现改为集群汇总；无查询时为 0 属正常。按索引明细可在 Prometheus Explore 中查询原指标。"
     },
     {
       "aliasColors": {},
@@ -5309,7 +5317,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 113.0
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 301,
@@ -5317,7 +5325,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -5341,10 +5349,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "elasticsearch_index_stats_search_scroll_current{instance=\"$instance\",cluster=\"$cluster\"}",
+          "expr": "sum(elasticsearch_index_stats_search_scroll_current{instance=\"$instance\",cluster=\"$cluster\"}) or vector(0)",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{index}}",
+          "legendFormat": "集群 Scroll 上下文总数",
           "refId": "A",
           "step": 20
         }
@@ -5390,7 +5398,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "当前打开的 scroll 上下文数量（elasticsearch_index_stats_search_scroll_current）。该指标仅含 cluster/index 标签、无 name 标签（原查询的 name 过滤会导致永远无数据，已移除），按索引展示。scroll 未正常释放会持续占用堆内存并触发 search 上下文告警。"
+      "description": "集群当前打开的 scroll 上下文总数（sum of elasticsearch_index_stats_search_scroll_current，该指标只有 cluster/index 标签）。scroll 未正常释放会持续占用堆内存并触发 search 上下文告警；无 scroll 请求时为 0 属正常。原按索引拆分序列过多，现改为集群汇总。"
     },
     {
       "collapsed": false,
@@ -5399,7 +5407,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 120.0
+        "y": 120
       },
       "id": 99,
       "panels": [],
@@ -5429,7 +5437,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 121.0
+        "y": 121
       },
       "height": "400",
       "hiddenSeries": false,
@@ -5610,7 +5618,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 121.0
+        "y": 121
       },
       "height": "400",
       "hiddenSeries": false,
@@ -5777,7 +5785,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 128.0
+        "y": 128
       },
       "id": 100,
       "panels": [],
@@ -5806,7 +5814,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 129.0
+        "y": 129
       },
       "hiddenSeries": false,
       "id": 45,
@@ -5814,7 +5822,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -5841,7 +5849,7 @@
           "expr": "irate(elasticsearch_thread_pool_rejected_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{ type }}",
+          "legendFormat": "{{name}}（{{type}}）",
           "refId": "A",
           "step": 20
         }
@@ -5887,7 +5895,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点各线程池的拒绝速率（次/秒）。大于 0 说明该线程池打满且队列溢出，请求被拒。"
+      "description": "各节点各线程池的拒绝速率（次/秒，irate of elasticsearch_thread_pool_rejected_count，type 标签为线程池名如 search/write/flush）。大于 0 说明该线程池打满且队列溢出；空闲集群全为 0 属健康。"
     },
     {
       "aliasColors": {},
@@ -5909,7 +5917,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 129.0
+        "y": 129
       },
       "hiddenSeries": false,
       "id": 46,
@@ -6012,7 +6020,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 129.0
+        "y": 129
       },
       "height": "",
       "hiddenSeries": false,
@@ -6116,7 +6124,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 129.0
+        "y": 129
       },
       "hiddenSeries": false,
       "id": 44,
@@ -6219,7 +6227,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 136.0
+        "y": 136
       },
       "hiddenSeries": false,
       "id": 211,
@@ -6309,7 +6317,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 143.0
+        "y": 143
       },
       "id": 101,
       "panels": [],
@@ -6339,7 +6347,7 @@
         "h": 7,
         "w": 5,
         "x": 0,
-        "y": 144.0
+        "y": 144
       },
       "height": "400",
       "hiddenSeries": false,
@@ -6448,7 +6456,7 @@
         "h": 7,
         "w": 7,
         "x": 5,
-        "y": 144.0
+        "y": 144
       },
       "height": "400",
       "hiddenSeries": false,
@@ -6557,7 +6565,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 144.0
+        "y": 144
       },
       "height": "400",
       "hiddenSeries": false,
@@ -6666,7 +6674,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 144.0
+        "y": 144
       },
       "height": "400",
       "hiddenSeries": false,
@@ -6774,7 +6782,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 151.0
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 216,
@@ -6877,7 +6885,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 151.0
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 217,
@@ -6885,7 +6893,7 @@
         "alignAsTable": true,
         "avg": true,
         "current": false,
-        "hideZero": true,
+        "hideZero": false,
         "max": true,
         "min": true,
         "show": true,
@@ -6912,7 +6920,7 @@
           "expr": "irate(elasticsearch_indices_request_cache_evictions{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}: {{index}}",
+          "legendFormat": "{{name}}",
           "refId": "A",
           "step": 20
         }
@@ -6958,7 +6966,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "请求缓存驱逐速率（rate of elasticsearch_indices_request_cache_evictions）。驱逐频繁说明缓存空间不足或数据频繁变化导致失效。"
+      "description": "各节点请求缓存驱逐速率（irate of elasticsearch_indices_request_cache_evictions，节点级指标）。驱逐频繁说明缓存空间不足或数据频繁变化导致失效；空闲集群恒为 0 属正常。"
     },
     {
       "collapsed": false,
@@ -6967,7 +6975,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 164.0
+        "y": 164
       },
       "id": 102,
       "panels": [],
@@ -6994,7 +7002,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 165.0
+        "y": 165
       },
       "hiddenSeries": false,
       "id": 85,
@@ -7093,7 +7101,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 165.0
+        "y": 165
       },
       "hiddenSeries": false,
       "id": 86,
@@ -7181,7 +7189,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 178.0
+        "y": 178
       },
       "id": 103,
       "panels": [],
@@ -7208,7 +7216,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 179.0
+        "y": 179
       },
       "hiddenSeries": false,
       "id": 75,
@@ -7307,7 +7315,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 179.0
+        "y": 179
       },
       "hiddenSeries": false,
       "id": 83,
@@ -7406,7 +7414,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 186.0
+        "y": 186
       },
       "hiddenSeries": false,
       "id": 76,
@@ -7494,7 +7502,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 192.0
+        "y": 192
       },
       "id": 104,
       "panels": [],
@@ -7521,7 +7529,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 193.0
+        "y": 193
       },
       "hiddenSeries": false,
       "id": 61,
@@ -7621,7 +7629,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 193.0
+        "y": 193
       },
       "hiddenSeries": false,
       "id": 62,
@@ -7710,7 +7718,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 200.0
+        "y": 200
       },
       "id": 105,
       "panels": [],
@@ -7737,7 +7745,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 201.0
+        "y": 201
       },
       "hiddenSeries": false,
       "id": 55,
@@ -7836,7 +7844,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 201.0
+        "y": 201
       },
       "hiddenSeries": false,
       "id": 56,
@@ -7935,7 +7943,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 208.0
+        "y": 208
       },
       "hiddenSeries": false,
       "id": 65,
@@ -8034,7 +8042,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 208.0
+        "y": 208
       },
       "hiddenSeries": false,
       "id": 66,
@@ -8122,7 +8130,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 215.0
+        "y": 215
       },
       "id": 106,
       "panels": [],
@@ -8149,7 +8157,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 216.0
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 57,
@@ -8248,7 +8256,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 216.0
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 58,
@@ -8336,7 +8344,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 223.0
+        "y": 223
       },
       "id": 107,
       "panels": [],
@@ -8363,7 +8371,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 224.0
+        "y": 224
       },
       "hiddenSeries": false,
       "id": 59,
@@ -8462,7 +8470,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 224.0
+        "y": 224
       },
       "hiddenSeries": false,
       "id": 60,
@@ -8550,7 +8558,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 231.0
+        "y": 231
       },
       "id": 108,
       "panels": [],
@@ -8577,7 +8585,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 232.0
+        "y": 232
       },
       "hiddenSeries": false,
       "id": 63,
@@ -8676,7 +8684,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 232.0
+        "y": 232
       },
       "hiddenSeries": false,
       "id": 64,
@@ -8764,7 +8772,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 239.0
+        "y": 239
       },
       "id": 109,
       "panels": [],
@@ -8791,7 +8799,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 240.0
+        "y": 240
       },
       "hiddenSeries": false,
       "id": 67,
@@ -8890,7 +8898,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 240.0
+        "y": 240
       },
       "hiddenSeries": false,
       "id": 68,
@@ -8978,7 +8986,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 247.0
+        "y": 247
       },
       "id": 110,
       "panels": [],
@@ -9005,7 +9013,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 248.0
+        "y": 248
       },
       "hiddenSeries": false,
       "id": 69,
@@ -9104,7 +9112,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 248.0
+        "y": 248
       },
       "hiddenSeries": false,
       "id": 70,
@@ -9192,7 +9200,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 255.0
+        "y": 255
       },
       "id": 111,
       "panels": [],
@@ -9219,7 +9227,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 256.0
+        "y": 256
       },
       "hiddenSeries": false,
       "id": 71,
@@ -9318,7 +9326,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 256.0
+        "y": 256
       },
       "hiddenSeries": false,
       "id": 72,
@@ -9406,7 +9414,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 263.0
+        "y": 263
       },
       "id": 112,
       "panels": [],
@@ -9433,7 +9441,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 264.0
+        "y": 264
       },
       "hiddenSeries": false,
       "id": 73,
@@ -9533,7 +9541,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 264.0
+        "y": 264
       },
       "hiddenSeries": false,
       "id": 74,
@@ -9633,7 +9641,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 15.0
+        "y": 15
       },
       "hiddenSeries": false,
       "id": 320,
@@ -9732,7 +9740,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 83.0
+        "y": 83
       },
       "hiddenSeries": false,
       "id": 324,
@@ -9838,7 +9846,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 158.0
+        "y": 158
       },
       "hiddenSeries": false,
       "id": 321,
@@ -9870,7 +9878,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "100 * rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) / ignoring(cache) clamp_min((rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) + ignoring(cache) rate(elasticsearch_indices_query_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])), 1e-10)",
+          "expr": "100 * sum without(cache) (rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])) / clamp_min((sum without(cache) (rate(elasticsearch_indices_query_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])) + sum without(cache) (rate(elasticsearch_indices_query_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]))), 1e-10)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{name}}",
@@ -9917,7 +9925,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "query cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_query_cache_count 与 query_miss_count）。已用 ignoring(cache) 处理 hit/miss 序列 cache 标签不一致导致的无法匹配问题；集群无查询缓存活动时显示 0%（分母已做保护，不会再 No data）。命中率低且驱逐频繁说明缓存空间不足或查询模式过于随机。"
+      "description": "query cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_query_cache_count[cache=hit] 与 elasticsearch_indices_query_miss_count[cache=miss]）。hit/miss 序列的 cache 标签值不同、直接二元运算会匹配失败，已用 sum without(cache) 去掉 cache 标签后再计算；分母 clamp_min 保护，无缓存活动时显示 0%。命中率低且查询模式随机说明缓存收益有限。"
     },
     {
       "aliasColors": {},
@@ -9937,7 +9945,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 158.0
+        "y": 158
       },
       "hiddenSeries": false,
       "id": 322,
@@ -9969,7 +9977,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "100 * rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) / ignoring(cache) clamp_min((rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]) + ignoring(cache) rate(elasticsearch_indices_request_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])), 1e-10)",
+          "expr": "100 * sum without(cache) (rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])) / clamp_min((sum without(cache) (rate(elasticsearch_indices_request_cache_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval])) + sum without(cache) (rate(elasticsearch_indices_request_miss_count{instance=\"$instance\",cluster=\"$cluster\",name=~\"$name\"}[$interval]))), 1e-10)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{name}}",
@@ -10016,7 +10024,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "shard request cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_request_cache_count 与 request_miss_count）。已用 ignoring(cache) 处理 hit/miss 序列 cache 标签不一致导致的无法匹配问题；无请求缓存活动时显示 0%（分母已做保护，不会再 No data）。请求缓存只对显式开启 request_cache 的查询生效，长期 0% 且业务没用 request_cache 属正常。"
+      "description": "shard request cache 命中率 = hit / (hit + miss)（rate of elasticsearch_indices_request_cache_count[cache=hit] 与 elasticsearch_indices_request_miss_count[cache=miss]）。hit/miss 序列的 cache 标签值不同、直接二元运算会匹配失败，已用 sum without(cache) 去掉 cache 标签后再计算；分母 clamp_min 保护，无请求缓存活动时显示 0%。请求缓存只对显式开启 request_cache 的查询生效，长期 0% 且业务没用 request_cache 属正常。"
     },
     {
       "aliasColors": {},
@@ -10036,7 +10044,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 171.0
+        "y": 171
       },
       "hiddenSeries": false,
       "id": 323,
@@ -10190,7 +10198,7 @@
         "h": 3,
         "w": 5,
         "x": 15,
-        "y": 4.0
+        "y": 4
       },
       "id": 330,
       "options": {
@@ -10246,7 +10254,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 4.0
+        "y": 4
       },
       "id": 331,
       "options": {
@@ -10622,5 +10630,5 @@
   "timezone": "browser",
   "title": "ElasticSearch (Optimized)",
   "uid": "es-opt4-6483",
-  "version": 18
+  "version": 20
 }

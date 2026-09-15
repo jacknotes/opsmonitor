@@ -1059,10 +1059,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 24,
-        "h": 6
+        "x": 15,
+        "y": 14,
+        "w": 9,
+        "h": 4
       },
       "hiddenSeries": false,
       "id": 7,
@@ -1167,7 +1167,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 18
       },
       "panels": [],
       "collapsed": false
@@ -1201,9 +1201,9 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 25,
-        "w": 8,
-        "h": 4
+        "y": 19,
+        "w": 3,
+        "h": 6
       },
       "id": 9,
       "interval": null,
@@ -1290,10 +1290,10 @@
         "overrides": []
       },
       "gridPos": {
-        "x": 8,
-        "y": 25,
-        "w": 8,
-        "h": 4
+        "x": 3,
+        "y": 19,
+        "w": 3,
+        "h": 6
       },
       "id": 16,
       "options": {
@@ -1354,10 +1354,10 @@
         "thresholdMarkers": true
       },
       "gridPos": {
-        "x": 16,
-        "y": 25,
-        "w": 8,
-        "h": 4
+        "x": 6,
+        "y": 19,
+        "w": 3,
+        "h": 6
       },
       "hideTimeOverride": true,
       "id": 12,
@@ -1431,9 +1431,9 @@
       "description": "主从复制偏移量（字节）。master_repl_offset 与 slave_repl_offset 的差值即复制延迟，持续增大说明从库同步跟不上主库写入。",
       "datasource": "Prometheus",
       "gridPos": {
-        "x": 0,
-        "y": 29,
-        "w": 8,
+        "x": 9,
+        "y": 19,
+        "w": 5,
         "h": 6
       },
       "aliasColors": {},
@@ -1531,9 +1531,9 @@
       "description": "连接细节：新连接建立速率（received/s）、被拒绝连接速率（rejected/s）、阻塞中的客户端数（blocked，如 BLPOP 等阻塞命令）。rejected 大于 0 说明已触达 maxclients 上限。",
       "datasource": "Prometheus",
       "gridPos": {
-        "x": 8,
-        "y": 29,
-        "w": 8,
+        "x": 14,
+        "y": 19,
+        "w": 5,
         "h": 6
       },
       "aliasColors": {},
@@ -1647,9 +1647,9 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "x": 16,
-        "y": 29,
-        "w": 8,
+        "x": 19,
+        "y": 19,
+        "w": 5,
         "h": 6
       },
       "hiddenSeries": false,
@@ -1732,7 +1732,7 @@
       "description": "RDB/AOF 持久化状态、慢查询长度与最近慢执行、实例探活。",
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 25,
         "w": 24,
         "h": 1
       },
@@ -1747,7 +1747,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -1814,7 +1814,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 3,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -1881,7 +1881,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 6,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -1956,7 +1956,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 9,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -2023,7 +2023,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 12,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -2090,7 +2090,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 15,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -2157,7 +2157,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 18,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -2232,7 +2232,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 21,
-        "y": 36,
+        "y": 26,
         "w": 3,
         "h": 4
       },
@@ -2294,7 +2294,7 @@
       "description": "QPS、命中率、命令调用、网络 I/O、进程 CPU、命令平均延迟 Top5 与 Pub/Sub。",
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 30,
         "w": 24,
         "h": 1
       },
@@ -2320,7 +2320,7 @@
       "grid": {},
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 31,
         "w": 6,
         "h": 6
       },
@@ -2426,7 +2426,7 @@
       "grid": {},
       "gridPos": {
         "x": 6,
-        "y": 41,
+        "y": 31,
         "w": 6,
         "h": 6
       },
@@ -2543,7 +2543,7 @@
       "grid": {},
       "gridPos": {
         "x": 12,
-        "y": 41,
+        "y": 31,
         "w": 6,
         "h": 6
       },
@@ -2646,7 +2646,7 @@
       "grid": {},
       "gridPos": {
         "x": 18,
-        "y": 41,
+        "y": 31,
         "w": 6,
         "h": 6
       },
@@ -2746,7 +2746,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 0,
-        "y": 47,
+        "y": 37,
         "w": 8,
         "h": 6
       },
@@ -2838,7 +2838,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 8,
-        "y": 47,
+        "y": 37,
         "w": 8,
         "h": 6
       },
@@ -2954,7 +2954,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 16,
-        "y": 47,
+        "y": 37,
         "w": 8,
         "h": 6
       },
@@ -3053,7 +3053,7 @@
       "description": "各 DB 键数量、过期/淘汰情况、过期与未过期键对比及各 DB 平均 TTL。",
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 43,
         "w": 24,
         "h": 1
       },
@@ -3079,7 +3079,7 @@
       "grid": {},
       "gridPos": {
         "x": 0,
-        "y": 54,
+        "y": 44,
         "w": 8,
         "h": 6
       },
@@ -3196,7 +3196,7 @@
       "grid": {},
       "gridPos": {
         "x": 8,
-        "y": 54,
+        "y": 44,
         "w": 8,
         "h": 6
       },
@@ -3304,7 +3304,7 @@
       "datasource": "Prometheus",
       "gridPos": {
         "x": 16,
-        "y": 54,
+        "y": 44,
         "w": 8,
         "h": 6
       },
@@ -3407,7 +3407,7 @@
       "grid": {},
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 50,
         "w": 24,
         "h": 6
       },
@@ -3588,5 +3588,5 @@
   "timezone": "browser",
   "title": "Redis (Optimized)",
   "uid": "redis-opt-763",
-  "version": 1
+  "version": 3
 }
