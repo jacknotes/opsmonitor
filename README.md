@@ -1,6 +1,6 @@
-# OpsMonitor — Grafana 监控仪表盘合集
+# OpsMonitor — Grafana 仪表盘与 Prometheus 告警规则合集
 
-面向中间件运维监控的 Grafana Dashboard 合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL** 四大常用组件。所有仪表盘基于 Prometheus 数据源，在社区原版基础上做了深度优化：修正失效查询、补齐监控指标、并为每个面板添加中文说明，开箱即用。
+面向中间件运维监控的合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL** 四大常用组件。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
 
 ## 仪表盘一览
 
@@ -33,6 +33,8 @@
 | Redis | [oliver006/redis_exporter](https://github.com/oliver006/redis_exporter) |
 | Elasticsearch | [justwatch/elasticsearch_exporter](https://github.com/justwatch/elasticsearch_exporter) 1.7.0 |
 | MySQL | [prometheus/mysqld_exporter](https://github.com/prometheus/mysqld_exporter) |
+| Prometheus | 规则文件兼容 Prometheus 2.x / VictoriaMetrics |
+| Alertmanager | 邮件 / 企业微信 / 钉钉 webhook 路由 |
 
 > 注意：exporter 升级大版本后部分指标命名会变化，届时需要同步调整仪表盘查询。
 
@@ -50,10 +52,39 @@
 
 优化版仪表盘的 UID 与社区原版不同，导入不会覆盖环境中的原版仪表盘；但同一 UID 的优化版重复导入会更新已有仪表盘（用于版本迭代）。
 
+## Prometheus 告警规则
+
+`prometheus/rules/` 下按 exporter 拆分为四个规则文件，共 43 条告警，格式对齐 `node_exporter.rule`，指标查询与优化版仪表盘保持一致，job 过滤匹配 `.*<exporter>_exporter.*`（对应 Consul 注册的 job 名）：
+
+| 文件 | 规则数 | 核心覆盖 |
+| --- | --- | --- |
+| `mysql.rule` | 11 | 实例存活、异常重启、主从 IO/SQL 线程、复制错误号与延迟、连接数占比、慢查询、exporter 抓取错误 |
+| `redis.rule` | 10 | 实例存活、主从链路、内存/maxmemory 占比、连接数、持久化失败（RDB/AOF）、key 驱逐、拒绝连接、碎片率、慢日志 |
+| `rabbitmq.rule` | 10 | exporter 存活、服务运行状态、内存/磁盘水位告警、网络分区、队列积压、unacked、业务队列专项、无消费者 |
+| `elasticsearch.rule` | 12 | exporter 存活、集群健康 red/yellow、节点数变化、JVM 堆与 GC、CPU、熔断器、unassigned shards、数据盘水位、pending tasks |
+
+规则设计要点：severity 分 High / critical 两级对接 Alertmanager 路由；描述统一携带 `app`/`env` 标签；对环境特化场景做了取舍（如 ES yellow 仅对有副本的多节点集群告警，避免单节点集群常驻误报；Redis 碎片率仅在使用量超 1G 时告警）。部分队列级告警需按业务实际排除特定模式的队列（如拉模式消费的缓冲队列）。
+
+`prometheus/rules/old/` 保留了重构前生产在用的四个规则文件，仅作参考对照，不参与加载（Prometheus 的 `rule_files` glob 不递归子目录）。
+
 ## 目录结构
 
 ```
 opsmonitor/
+├── alertmanager/
+│   ├── alertmanager.yml           # 路由/抑制/接收器配置
+│   ├── email.tmpl                 # 邮件模板（生产）
+│   ├── email_dev.tmpl             # 邮件模板（开发）
+│   └── wechat.tmpl                # 企业微信模板
+├── prometheus/
+│   ├── prometheus.yml             # 主配置（Consul 服务发现、k8s 抓取、remote_write）
+│   └── rules/
+│       ├── node_exporter.rule     # 主机层告警（生产沿用）
+│       ├── mysql.rule             # MySQL 告警（11 条）
+│       ├── redis.rule             # Redis 告警（10 条）
+│       ├── rabbitmq.rule          # RabbitMQ 告警（10 条）
+│       ├── elasticsearch.rule     # Elasticsearch 告警（12 条）
+│       └── old/                   # 重构前生产规则（仅参考，不加载）
 └── grafana/
     ├── rabbitmq/
     │   ├── RabbitMQ.json              # 社区原版
@@ -68,6 +99,17 @@ opsmonitor/
         ├── mysql.json                 # 社区原版
         └── mysql-optimized.json       # 优化版（推荐）
 ```
+
+## 脱敏说明
+
+本仓库为对外可见副本，已做统一脱敏，**请勿将仓库内配置直接部署到生产**：
+
+- 内网 IP 一律掩码为前两段 + `xxx`（如 `192.168.xxx`），正则中的 IP 同步处理；
+- Prometheus 的 `bearer_token` 与 Alertmanager 的企业微信 `api_secret` 替换为 `<REDACTED>`；
+- 内部域名统一替换为 `example.com`；
+- 邮箱与 SMTP 信息为占位示例（`test.com` / `PASS`）。
+
+真实环境部署时需还原以上地址与凭据。Grafana 仪表盘 JSON 不含地址类敏感信息，导入使用不受影响。
 
 ## License
 
