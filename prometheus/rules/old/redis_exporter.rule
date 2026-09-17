@@ -1,0 +1,66 @@
+groups:
+- name: redis_exporter
+  rules:
+  - alert: redis_exporterDown
+    expr: redis_up < 1
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "redis_exporter is down"
+      description: "redis Is Down(current value: {{ $value }})"
+
+  - alert: redisLinkMasterStatusAlert
+    expr: redis_master_link_up < 1
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "Redis Connect Master Is Down"
+      description: "redis Connect Master Is Down(current value: {{ $value }})"
+
+  - alert: redisUsageMemoryAlert
+    expr: (redis_memory_used_bytes / (redis_memory_max_bytes != 0)) * 100 > 60
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis Usage Host Memory Many"
+      description: "redisUsage Host Memory Many,Value Is Greater 60%(current value: {{ $value }})"
+
+  - alert: redisClientConnectNumberAlert
+    expr: redis_connected_clients > 4000
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis Client Connect Number Many"
+      description: "redis Client Connect Number Many, Value is Greater 4000(current value: {{ $value }})"
+
+  - alert: redisNetworkInputAlert
+    expr: rate(redis_net_input_bytes_total[5m]) /1024 /1024 > 20
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis Network Input Flow Many"
+      description: "redis Network Input Flow Many,Value Is Greater 20mbps/5m(current value: {{ $value }})"
+
+  - alert: redisNetworkOutputAlert
+    expr: rate(redis_net_output_bytes_total[5m]) /1024 /1024 > 20
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis Network Output Flow Many"
+      description: "redis Network Output Flow Many, Value Is Greater 20mbps/5m(current value: {{ $value }})"
+
+  - alert: redisMemoryFragmentationRatioAlert
+    expr: redis_mem_fragmentation_ratio{app!~"fat.*|uat.*"} > 1.5 
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis Memory Fragmentation Ratio High"
+      description: "Redis Memory Fragmentation Ratio High, Value Is Greater 1.5%(current value: {{ $value }})"
+

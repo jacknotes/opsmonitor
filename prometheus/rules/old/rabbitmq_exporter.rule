@@ -1,0 +1,39 @@
+groups:
+- name: RabbitmqExporterAlert
+  rules:
+  - alert: RabbitmqClusterDown
+    expr: rabbitmq_up != 1
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "rabbitmq cluster is down"
+      description: "app: {{ $labels.app }}, rabbitmq cluster is down(current value: {{ $value }})"
+
+  - alert: RabbitmqNodeRunningAlert
+    expr: rabbitmq_running != 1
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "rabbitmq node is down"
+      description: "app: {{ $labels.app }}, node: {{ $labels.node }}, rabbitmq node is down(current value: {{ $value }})"
+
+  - alert: RabbitmqNodeMemoryAlert
+    expr: rabbitmq_node_mem_used / rabbitmq_node_mem_limit * 100 > 50
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "rabbitmq node memory use too many"
+      description: "app: {{ $labels.app }}, node: {{ $labels.node }}, rabbitmq node use memory greater than 50%(current value: {{ $value }})"
+
+  - alert: RabbitmqQueueUnAckAlert
+    expr: rabbitmq_queue_message_bytes_unacknowledged{queue="Pro.Email.Tool.Queue"} > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "rabbitmq queue unack too many"
+      description: "app: {{ $labels.app }}, vhost: {{ $labels.vhost }}, queue: {{ $labels.queue }}, rabbitmq queue unack is greater than 0(current value: {{ $value }})"
+

@@ -5392,8 +5392,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.116:9104",
-          "value": "192.168.13.116:9104"
+          "text": "192.168.xxx:9104",
+          "value": "192.168.xxx:9104"
         },
         "datasource": "Prometheus",
         "definition": "label_values(mysql_up{job=\"$job\",env=\"$env\"}, instance)",
@@ -5420,8 +5420,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.116:9100",
-          "value": "192.168.13.116:9100"
+          "text": "192.168.xxx:9100",
+          "value": "192.168.xxx:9100"
         },
         "datasource": "Prometheus",
         "definition": "query_result(up{instance=~\"$host\"}) ",

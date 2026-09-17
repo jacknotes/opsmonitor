@@ -1,0 +1,42 @@
+{{ define "email.subject" }}
+{{- $len := (len .Alerts.Firing) -}}
+{{ if gt $len 0 }}
+{{ range $index,$alert := .Alerts.Firing }}
+{{ if eq $index 0 }}
+[{{   .Status | toUpper }}:{{- $len -}}] {{ .Labels.alertname }} {{ .Labels.severity }}
+{{ end }}
+{{ end }}
+{{ else }}
+{{ range $index,$alert := .Alerts.Resolved }}
+{{ if eq $index 0 }}
+[{{   .Status | toUpper }}] {{ .Labels.alertname }} {{ .Labels.severity }}
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
+
+{{ define "email.to" }}ops@test.com, devops@test.com{{ end }}
+
+{{ define "email.html" }}
+{{- if gt (len .Alerts.Firing) 0 -}}{{ range .Alerts.Firing }}
+<pre>
+状态：{{   .Status }} 
+Job: {{ .Labels.job }}
+实例: {{ .Labels.instance }} 
+信息: {{ .Annotations.summary }} 
+详情: {{ .Annotations.description }}
+开始时间: {{ (.StartsAt.UTC.Add 28800e9).Format "2006-01-02 15:04:05" }}
+</pre>
+{{ end }}{{ end -}}
+{{- if gt (len .Alerts.Resolved) 0 -}}{{ range .Alerts.Resolved }}
+<pre>
+状态：{{   .Status }}
+Job: {{ .Labels.job }}
+实例: {{ .Labels.instance }}
+信息: {{ .Annotations.summary }}
+详情: {{ .Annotations.description }}
+开始时间: {{ (.StartsAt.UTC.Add 28800e9).Format "2006-01-02 15:04:05" }}
+恢复时间: {{ (.EndsAt.UTC.Add 28800e9).Format "2006-01-02 15:04:05" }}
+</pre>
+{{ end }}{{ end -}}
+{{ end }}

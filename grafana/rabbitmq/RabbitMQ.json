@@ -1321,8 +1321,8 @@
         "allValue": ".*",
         "current": {
           "selected": false,
-          "text": "10.10.10.200:9419",
-          "value": "10.10.10.200:9419"
+          "text": "10.10.xxx:9419",
+          "value": "10.10.xxx:9419"
         },
         "datasource": "$datasource",
         "definition": "",

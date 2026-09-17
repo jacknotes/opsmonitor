@@ -474,7 +474,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "redis_connected_clients{app=\"redis-slave02\", env=\"pro\", instance=\"192.168.13.161:9121\", ip=\"192.168.13.161\", job=\"consul-redis_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "redis_connected_clients{app=\"redis-slave02\", env=\"pro\", instance=\"192.168.xxx:9121\", ip=\"192.168.xxx\", job=\"consul-redis_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "redis_connected_clients{instance=~\"$instance\"}",
@@ -1696,7 +1696,7 @@
     {
       "aliasColors": {
         "evicts": "#890F02",
-        "memcached_items_evicted_total{instance=\"172.17.0.1:9150\",job=\"prometheus\"}": "#890F02",
+        "memcached_items_evicted_total{instance=\"172.17.xxx:9150\",job=\"prometheus\"}": "#890F02",
         "reclaims": "#3F6833"
       },
       "bars": false,
@@ -2289,8 +2289,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.161:9121",
-          "value": "192.168.13.161:9121"
+          "text": "192.168.xxx:9121",
+          "value": "192.168.xxx:9121"
         },
         "datasource": "Prometheus",
         "definition": "label_values(redis_up{job=\"$job\"}, instance)",

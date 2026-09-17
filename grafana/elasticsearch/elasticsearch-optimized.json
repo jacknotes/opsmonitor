@@ -147,7 +147,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"hlog.hs.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "{app=\"hlog.example.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_status{instance=\"$instance\",cluster=\"$cluster\",color=\"red\"}==1 or (elasticsearch_cluster_health_status{instance=\"$instance\",cluster=\"$cluster\",color=\"green\"}==1)+4 or (elasticsearch_cluster_health_status{instance=\"$instance\",cluster=\"$cluster\",color=\"yellow\"}==1)+2",
@@ -547,7 +547,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "elasticsearch_cluster_health_number_of_nodes{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_number_of_nodes{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_number_of_nodes{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -642,7 +642,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "elasticsearch_cluster_health_number_of_data_nodes{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_number_of_data_nodes{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_number_of_data_nodes{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -738,7 +738,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_number_of_pending_tasks{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_number_of_pending_tasks{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_number_of_pending_tasks{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -1011,7 +1011,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"hlog.hs.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "{app=\"hlog.example.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "max(elasticsearch_cluster_health_number_of_in_flight_fetch{instance=\"$instance\",cluster=\"$cluster\"}) or on() vector(0)",
@@ -1118,7 +1118,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"hlog.hs.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "{app=\"hlog.example.com\", cluster=\"hlog\", color=\"yellow\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "max(elasticsearch_cluster_health_task_max_waiting_in_queue_millis{instance=\"$instance\",cluster=\"$cluster\"})",
@@ -1246,7 +1246,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_active_primary_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_active_primary_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_active_primary_shards{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -1340,7 +1340,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_active_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_active_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_active_shards{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -1434,7 +1434,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_initializing_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_initializing_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_initializing_shards{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -1528,7 +1528,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_relocating_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_relocating_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_relocating_shards{instance=\"$instance\",cluster=\"$cluster\"}",
@@ -1622,7 +1622,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_delayed_unassigned_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_delayed_unassigned_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_delayed_unassigned_shards{instance=\"$instance\",cluster=\"$cluster\"} ",
@@ -1716,7 +1716,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "elasticsearch_cluster_health_unassigned_shards{app=\"hlog.hs.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.13.198:9108\", ip=\"192.168.13.198\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "elasticsearch_cluster_health_unassigned_shards{app=\"hlog.example.com\", cluster=\"hlog\", env=\"pro\", instance=\"192.168.xxx:9108\", ip=\"192.168.xxx\", job=\"consul-elasticsearch_exporter\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "expr": "elasticsearch_cluster_health_unassigned_shards{instance=\"$instance\",cluster=\"$cluster\"} ",
@@ -10471,8 +10471,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.198:9108",
-          "value": "192.168.13.198:9108"
+          "text": "192.168.xxx:9108",
+          "value": "192.168.xxx:9108"
         },
         "datasource": "Prometheus",
         "definition": "label_values(elasticsearch_indices_docs{job=\"$job\",cluster=\"$cluster\", name!=\"\"},instance)",
@@ -10523,8 +10523,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.198",
-          "value": "192.168.13.198"
+          "text": "192.168.xxx",
+          "value": "192.168.xxx"
         },
         "datasource": "Prometheus",
         "definition": "label_values(elasticsearch_indices_docs{job=\"$job\",cluster=\"$cluster\",instance=~\"$instance\",name!=\"\"},host)",

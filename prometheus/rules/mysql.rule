@@ -1,0 +1,101 @@
+groups:
+- name: mysqlStatusAlert
+  rules:
+  - alert: MySQLDown
+    expr: mysql_up{job=~".*mysqld_exporter.*"} == 0
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL is Down"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL instance is Down (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: MySQLRestarted
+    expr: mysql_global_status_uptime{job=~".*mysqld_exporter.*"} < 300
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Restarted"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL instance has been running for less than 300s, possible unexpected restart (instance: {{ $labels.instance }}, uptime: {{ $value }}s)"
+
+  - alert: MySQLSlaveIORunningError
+    expr: mysql_slave_status_slave_io_running{job=~".*mysqld_exporter.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MySQL Slave IO Thread is Not Running"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave IO thread is not running, replication broken (instance: {{ $labels.instance }}, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, current value: {{ $value }})"
+
+  - alert: MySQLSlaveSQLRunningError
+    expr: mysql_slave_status_slave_sql_running{job=~".*mysqld_exporter.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MySQL Slave SQL Thread is Not Running"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave SQL thread is not running, replication broken (instance: {{ $labels.instance }}, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, current value: {{ $value }})"
+
+  - alert: MySQLSlaveLastSQLErrorAlert
+    expr: mysql_slave_status_last_sql_errno{job=~".*mysqld_exporter.*"} > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Slave Last_SQL_ErrorNum Alert"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave Last_SQL_ErrorNum is above 0 (instance: {{ $labels.instance }}, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, current value: {{ $value }})"
+
+  - alert: MySQLSlaveLastIOErrorAlert
+    expr: mysql_slave_status_last_io_errno{job=~".*mysqld_exporter.*"} > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Slave Last_IO_ErrorNum Alert"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave Last_IO_ErrorNum is above 0 (instance: {{ $labels.instance }}, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, current value: {{ $value }})"
+
+  - alert: MySQLSlaveLastErrorAlert
+    expr: mysql_slave_status_last_errno{job=~".*mysqld_exporter.*"} > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Slave Last_ErrorNum Alert"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave Last_ErrorNum is above 0 (instance: {{ $labels.instance }}, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, current value: {{ $value }})"
+
+  - alert: MySQLReplicationLagAlert
+    expr: mysql_slave_status_seconds_behind_master{job=~".*mysqld_exporter.*"} > 300
+    for: 5m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Replication Lag High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL Slave lag behind master above 300s (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: MySQLTooManyConnectionsAlert
+    expr: (mysql_global_status_threads_connected{job=~".*mysqld_exporter.*"} / mysql_global_variables_max_connections{job=~".*mysqld_exporter.*"}) * 100 > 85
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MySQL Connections usage High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL connected threads above 85% of max_connections (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: MySQLSlowQueriesAlert
+    expr: rate(mysql_global_status_slow_queries{job=~".*mysqld_exporter.*"}[5m]) > 1
+    for: 5m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Slow Queries Rate High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, MySQL slow query rate above 1/s/5m, check slow log (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: MySQLExporterScrapeErrorAlert
+    expr: mysql_exporter_last_scrape_error{job=~".*mysqld_exporter.*"} > 0
+    for: 5m
+    labels:
+      severity: High
+    annotations:
+      summary: "MySQL Exporter Scrape Error"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, mysqld_exporter last scrape failed, metrics may be incomplete (instance: {{ $labels.instance }}, current value: {{ $value }})"

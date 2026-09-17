@@ -1,0 +1,103 @@
+global:
+  resolve_timeout: 5m
+  smtp_require_tls: false
+  smtp_smarthost: 'smtp.test.com:465'
+  smtp_hello: 'alertmanager'
+  smtp_from: 'prometheus@test.com'
+  smtp_auth_username: 'prometheus@test.com'
+  smtp_auth_password: 'PASS'
+templates:
+  - '/usr/local/alertmanager/email.tmpl'
+  - '/usr/local/alertmanager/email_dev.tmpl'
+  - '/usr/local/alertmanager/wechat.tmpl'
+route:
+  receiver: 'email'
+  group_by: ['alertname', 'job', 'upstream']
+  # 新告警组的首次通知等待时间
+  group_wait: 1m
+  # 已有告警组的更新通知等待时间
+  group_interval: 2m
+  # 持续 firing 告警的重复通知间隔
+  repeat_interval: 4h
+  routes:
+  - receiver: 'email'
+    group_wait: 1m
+    continue: true
+    match_re: 
+      job: .*[a-z].*
+  - receiver: 'email_dev'
+    group_wait: 1m
+    continue: true
+    match: 
+      app: "WebSite"
+  - receiver: 'webhook'
+    group_wait: 1m
+    continue: true
+    match_re: 
+      job: .*[a-z].*
+  - receiver: 'wechat'
+    group_wait: 1m
+    continue: true
+    match: 
+      severity: High
+receivers:
+- name: 'email'
+  email_configs:
+  - to: '{{ template "email.to" . }}'
+    html: '{{ template "email.html" . }}'
+    headers:
+      subject: '{{ template "email.subject" . }}'
+      To: "ops@test.com, devops@test.com"
+    send_resolved: true
+- name: 'email_dev'
+  email_configs:
+  - to: '{{ template "email_dev.to" . }}'
+    html: '{{ template "email_dev.html" . }}'
+    headers:
+      subject: '{{ template "email_dev.subject" . }}'
+      To: "user1@test.com, user2@test.com"
+    send_resolved: true
+- name: 'webhook'
+  webhook_configs:
+  - url: 'http://dingtalkwebhook.k8s.test.com/dingtalk/webhook1/send'
+    send_resolved: true
+- name: 'wechat'
+  wechat_configs:
+  - corp_id: wxiidjfisdfops
+    to_user: '@all'
+    #to_party: "2"
+    agent_id: 100000
+    api_secret: '<REDACTED>'
+    message: '{{ template "wechat.default.message" . }}'
+    send_resolved: true
+inhibit_rules:
+  - source_match_re:
+      alertname: linuxNodeDown|xenserverNodeDown
+    target_match_re:
+      job: .*blackbox-tcp.*|.*blackbox-http.*|consul-apollo|.*elasticsearch_exporter|.*mysqld_exporter|.*nginx_exporter|.*redis_exporter|.*rabbitmq_exporter
+    equal: 
+      - ip
+  - source_match_re:
+      alertname: windowsNodeDown|wmi_windows_NodeDown
+    target_match_re:
+      job: consul-mssql_exporter.*
+    equal: 
+      - ip
+  - source_match_re:
+      alertname: KubernetesNodeDown
+    target_match_re:
+      job: kubernetes.*
+    equal: 
+      - ip
+  - source_match_re:
+      alertname: DellHostNoDataAlert
+    target_match_re:
+      job: consul-snmp_idrac_exporter
+    equal: 
+      - ip
+  - source_match_re:
+      alertname: ElasticDown
+    target_match_re:
+      job: consul-elasticsearch_exporter
+    equal: 
+      - ip

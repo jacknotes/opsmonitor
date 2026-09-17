@@ -1,0 +1,92 @@
+groups:
+- name: rabbitmqStatusAlert
+  rules:
+  - alert: RabbitMQDown
+    expr: rabbitmq_up{job=~".*rabbitmq_exporter.*"} == 0
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "RabbitMQ Exporter is Down"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, rabbitmq_exporter cannot reach RabbitMQ management API (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: RabbitMQNotRunning
+    expr: rabbitmq_running{job=~".*rabbitmq_exporter.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ Service is Not Running"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, RabbitMQ node is not running (instance: {{ $labels.instance }}, node: {{ $labels.node }}, current value: {{ $value }})"
+
+  - alert: RabbitMQNodeMemoryUsageAlert
+    expr: (rabbitmq_node_mem_used{job=~".*rabbitmq_exporter.*"} / rabbitmq_node_mem_limit{job=~".*rabbitmq_exporter.*"}) * 100 > 50
+    for: 5m
+    labels:
+      severity: High
+    annotations:
+      summary: "RabbitMQ Node Memory usage High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, RabbitMQ node memory above 50% of limit, early warning before memory alarm blocks publishers (instance: {{ $labels.instance }}, node: {{ $labels.node }}, current value: {{ $value }})"
+
+  - alert: RabbitMQMemoryAlarmAlert
+    expr: rabbitmq_node_mem_alarm{job=~".*rabbitmq_exporter.*"} == 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ Memory Alarm Triggered"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, RabbitMQ memory high watermark exceeded, publishers are being blocked (instance: {{ $labels.instance }}, node: {{ $labels.node }}, current value: {{ $value }})"
+
+  - alert: RabbitMQDiskFreeAlarmAlert
+    expr: rabbitmq_node_disk_free_alarm{job=~".*rabbitmq_exporter.*"} == 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ Disk Free Alarm Triggered"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, RabbitMQ free disk space below limit, publishers are being blocked (instance: {{ $labels.instance }}, node: {{ $labels.node }}, current value: {{ $value }})"
+
+  - alert: RabbitMQNetworkPartitionsAlert
+    expr: rabbitmq_partitions{job=~".*rabbitmq_exporter.*"} > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ Network Partition Detected"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, RabbitMQ cluster has network partitions (instance: {{ $labels.instance }}, partitions: {{ $value }})"
+
+  - alert: RabbitMQQueueBacklogAlert
+    expr: rabbitmq_queue_messages{job=~".*rabbitmq_exporter.*"} > 10000
+    for: 10m
+    labels:
+      severity: High
+    annotations:
+      summary: "RabbitMQ Queue Backlog High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, queue backlog above 10000 for 10m (queue: {{ $labels.queue }}, vhost: {{ $labels.vhost }}, current value: {{ $value }})"
+
+  - alert: RabbitMQUnackedMessagesAlert
+    expr: rabbitmq_queue_messages_unacknowledged{job=~".*rabbitmq_exporter.*"} > 1000
+    for: 10m
+    labels:
+      severity: High
+    annotations:
+      summary: "RabbitMQ Unacknowledged Messages High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, unacknowledged messages above 1000 for 10m, consumer may be stuck (queue: {{ $labels.queue }}, vhost: {{ $labels.vhost }}, current value: {{ $value }})"
+
+  - alert: RabbitMQEmailToolQueueUnackAlert
+    expr: rabbitmq_queue_message_bytes_unacknowledged{job=~".*rabbitmq_exporter.*", queue="Pro.Email.Tool.Queue"} > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ Pro.Email.Tool.Queue Unack High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, business queue unacknowledged above 0 for 10m (queue: {{ $labels.queue }}, vhost: {{ $labels.vhost }}, current value: {{ $value }})"
+
+  - alert: RabbitMQQueueNoConsumersAlert
+    expr: rabbitmq_queue_consumers{job=~".*rabbitmq_exporter.*"} == 0 and on(queue, vhost, instance) (rabbitmq_queue_messages{job=~".*rabbitmq_exporter.*",queue!~"IdGenerator.*|.*flightsupplierinvoice"} > 0)
+    for: 10m
+    labels:
+      severity: High
+    annotations:
+      summary: "RabbitMQ Queue Has No Consumers"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, queue has messages but no consumers for 10m (queue: {{ $labels.queue }}, vhost: {{ $labels.vhost }})"

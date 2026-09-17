@@ -1,0 +1,147 @@
+groups:
+- name: mysqld_exporter
+  rules:
+  - alert: mysqld_exporterDown
+    expr: mysql_up < 1
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "mysql is down"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, mysql is down(current value: {{ $value }})"
+
+  - alert: mysqlQPSAlert
+    expr: irate(mysql_global_status_queries[5m]) > 15000
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql QPS Is Many"
+      description: "mysql QPS[5m] is greater 15000/5m(current value: {{ $value }})"
+
+  - alert: LocalMysqlConnectNumberAlert
+    expr: mysql_global_status_threads_connected{env=~"pro|uat|fat"} > 4000
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Connect Number Is Many"
+      description: "mysql connect number is greater 4000(current value: {{ $value }})"
+
+  - alert: AliyunMysqlConnectNumberAlert
+    expr: mysql_global_status_threads_connected{env="aliyun"} > 500
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Connect Number Is Many"
+      description: "mysql connect number is greater 500(current value: {{ $value }})"
+
+  - alert: mysqlNetworkSentAlert
+    expr: irate(mysql_global_status_bytes_sent[5m])  /1024 /1024 > 100
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Network Sent Traffic Is Many"
+      description: "mysql network sent traffic is greater 100mbps/5m(current value: {{ $value }})"
+
+  - alert: mysqlNetworkReciveAlert
+    expr: irate(mysql_global_status_bytes_received[5m])  /1024 /1024 > 100
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Network Receive Traffic Is Many"
+      description: "mysql network receive traffic is greater 100mbps/5m(current value: {{ $value }})"
+
+  - alert: mysqlSelectNumberAlert
+    expr: irate(mysql_global_status_commands_total{command="select"}[5m]) >10000
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Select(DML) Number Is Many"
+      description: "mysql select number is greater 10000/5m(current value: {{ $value }})"
+
+  - alert: mysqlDeleteNumberAlert
+    expr: irate(mysql_global_status_commands_total{command="delete"}[5m]) > 100
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Delete(DML) Number Is Many"
+      description: "mysql delete number is greater 100/5m(current value: {{ $value }})"
+
+  - alert: mysqlSlowQueryAlert
+    expr: irate(mysql_global_status_slow_queries[1m]) > 0.5
+    for: 3m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Mysql Slow Query Is Many"
+      description: "mysql slow query is greater 0.5/1m(current value: {{ $value }})"
+
+  - alert: mysqlTableLocksWaitedAlert
+    expr: irate(mysql_global_status_table_locks_waited[1m]) >1
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Table Locks Waited Trigger"
+      description: "mysql Table Locks Waited is greater 1/1m(current value: {{ $value }})"
+
+  - alert: mysqlSlaveIO_THREADRunningAlert
+    expr: mysql_slave_status_slave_io_running < 1
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Slave IO_Thread Is Down"
+      description: "Mysql Slave IO_Thread Is Down, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, value is lower 1(current value: {{ $value }})"
+
+  - alert: mysqlSlaveSQL_THREADRunningAlert
+    expr: mysql_slave_status_slave_sql_running < 1
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Slave SQL_Thread Is Down"
+      description: "Mysql Slave SQL_Thread Is Down, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }}, value is lower 1(current value: {{ $value }})"
+
+  - alert: mysqlSlaveLast_SQL_ErrorNumAlert
+    expr: mysql_slave_status_last_sql_errno > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Slave Last_SQL_ErrorNum Alert"
+      description: "Mysql Slave Last_SQL_ErrorNum is above 0, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }} (current value: {{ $value }})"
+
+  - alert: mysqlSlaveLast_IO_ErrorNumAlert
+    expr: mysql_slave_status_last_io_errno > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Slave Last_IO_ErrorNum Alert"
+      description: "Mysql Slave Last_IO_ErrorNum is above 0, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }} (current value: {{ $value }})"
+
+  - alert: mysqlSlaveLast_ErrorNumAlert
+    expr: mysql_slave_status_last_errno > 0
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Slave Last_ErrorNum Alert"
+      description: "Mysql Slave Last_ErrorNum is above 0, channel_name: {{ $labels.channel_name }}, master_host: {{ $labels.master_host }} (current value: {{ $value }})"
+
+  - alert: mysqlFullTableScanAlert
+    expr: rate(mysql_global_status_handlers_total{handler="read_rnd_next"}[5m]) > (10000 * 100)
+    for: 1m
+    labels:
+      severity: High
+    annotations:
+      summary: "Mysql Full Table Scan Alert"
+      description: "Mysql Full Table Scan, handler is above 1000000(current value: {{ $value }})"
+

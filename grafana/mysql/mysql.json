@@ -123,7 +123,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "mysql_global_status_uptime{app=\"fatmysql\", env=\"fat\", instance=\"192.168.13.116:9104\", ip=\"192.168.13.116\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.13.116:9100\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "mysql_global_status_uptime{app=\"fatmysql\", env=\"fat\", instance=\"192.168.xxx:9104\", ip=\"192.168.xxx\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.xxx:9100\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "calculatedInterval": "10m",
@@ -228,7 +228,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"fatmysql\", env=\"fat\", instance=\"192.168.13.116:9104\", ip=\"192.168.13.116\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.13.116:9100\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "{app=\"fatmysql\", env=\"fat\", instance=\"192.168.xxx:9104\", ip=\"192.168.xxx\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.xxx:9100\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "calculatedInterval": "10m",
@@ -790,7 +790,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "mysql_global_variables_innodb_buffer_pool_size{app=\"fatmysql\", env=\"fat\", instance=\"192.168.13.116:9104\", ip=\"192.168.13.116\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.13.116:9100\", project=\"services\", team=\"ops\"}",
+      "tableColumn": "mysql_global_variables_innodb_buffer_pool_size{app=\"fatmysql\", env=\"fat\", instance=\"192.168.xxx:9104\", ip=\"192.168.xxx\", job=\"consul-mysqld_exporter\", node_exporter=\"192.168.xxx:9100\", project=\"services\", team=\"ops\"}",
       "targets": [
         {
           "calculatedInterval": "10m",
@@ -5003,8 +5003,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.116:9104",
-          "value": "192.168.13.116:9104"
+          "text": "192.168.xxx:9104",
+          "value": "192.168.xxx:9104"
         },
         "datasource": "Prometheus",
         "definition": "label_values(mysql_up{job=\"$job\",env=\"$env\"}, instance)",
@@ -5031,8 +5031,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.116:9100",
-          "value": "192.168.13.116:9100"
+          "text": "192.168.xxx:9100",
+          "value": "192.168.xxx:9100"
         },
         "datasource": "Prometheus",
         "definition": "query_result(up{instance=~\"$host\"}) ",

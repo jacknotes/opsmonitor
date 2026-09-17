@@ -1,0 +1,110 @@
+groups:
+- name: elasticsearchStatusAlert
+  rules:
+  - alert: ElasticDown
+    expr: up{job=~".*elasticsearch_exporter.*"} == 0
+    for: 30s
+    labels:
+      severity: High
+    annotations:
+      summary: "ElasticSearch Exporter is Down"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, elasticsearch_exporter scrape failed (instance: {{ $labels.instance }}, current value: {{ $value }})"
+
+  - alert: ESClusterHealthRedAlert
+    expr: elasticsearch_cluster_health_status{job=~".*elasticsearch_exporter.*",color="red"} == 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ElasticSearch Cluster Health RED"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster health is RED, at least one primary shard unassigned (cluster: {{ $labels.cluster }}, instance: {{ $labels.instance }})"
+
+  - alert: ESClusterHealthYellowAlert
+    expr: elasticsearch_cluster_health_status{job=~".*elasticsearch_exporter.*",color="yellow",cluster=~"dlog|Blog-cluster|eslog-cluster"} == 1
+    for: 15m
+    labels:
+      severity: High
+    annotations:
+      summary: "ElasticSearch Cluster Health YELLOW"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster dlog health is YELLOW for 15m, replica shards unassigned (cluster: {{ $labels.cluster }}, instance: {{ $labels.instance }})"
+
+  - alert: ESClusterNodeNumberDecreaseAlert
+    expr: elasticsearch_cluster_health_number_of_nodes{job=~".*elasticsearch_exporter.*"} < elasticsearch_cluster_health_number_of_nodes{job=~".*elasticsearch_exporter.*"} offset 5m
+    for: 5m
+    labels:
+      severity: High
+    annotations:
+      summary: "ElasticSearch Cluster Node Decreased"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster node count decreased compared to 5m ago (cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESClusterTooFewNodesAlert
+    expr: elasticsearch_cluster_health_number_of_nodes{job=~".*elasticsearch_exporter.*",cluster=~"dlog|Blog-cluster|eslog-cluster"} < 3
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Cluster Too Few Nodes Running"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster dlog running on less than 3 nodes (cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESNodeHeapUsageAlert
+    expr: (sum by (instance,cluster,name) (elasticsearch_jvm_memory_used_bytes{job=~".*elasticsearch_exporter.*",area="heap"}) / max by (instance,cluster,name) (elasticsearch_jvm_memory_max_bytes{job=~".*elasticsearch_exporter.*",area="heap"})) * 100 > 90
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Node JVM Heap usage High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES node JVM heap usage above 90% for 10m (node: {{ $labels.name }}, cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESNodeCpuUsageAlert
+    expr: elasticsearch_process_cpu_percent{job=~".*elasticsearch_exporter.*"} > 85
+    for: 3m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Node CPU usage High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES node CPU usage above 85% for 3m (node: {{ $labels.name }}, cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESGcRunTimeAlert
+    expr: sum by (instance,cluster,name) (rate(elasticsearch_jvm_gc_collection_seconds_sum{job=~".*elasticsearch_exporter.*"}[5m])) > 0.3
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Node JVM GC Run Time High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES node JVM GC time above 0.3s/s for 5m, frequent GC may impact queries (node: {{ $labels.name }}, cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESCircuitBreakerTrippedAlert
+    expr: elasticsearch_breakers_tripped{job=~".*elasticsearch_exporter.*"} == 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Circuit Breaker Tripped"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES circuit breaker tripped, queries are being rejected (node: {{ $labels.name }}, breaker: {{ $labels.breaker }}, current value: {{ $value }})"
+
+  - alert: ESUnassignedShardsAlert
+    expr: elasticsearch_cluster_health_unassigned_shards{job=~".*elasticsearch_exporter.*",cluster=~"dlog|Blog-cluster|eslog-cluster"} > 0
+    for: 15m
+    labels:
+      severity: High
+    annotations:
+      summary: "ES Unassigned Shards"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster has unassigned shards for 15m (cluster: {{ $labels.cluster }}, current value: {{ $value }})"
+
+  - alert: ESDiskUsageAlert
+    expr: (1 - (elasticsearch_filesystem_data_available_bytes{job=~".*elasticsearch_exporter.*"} / elasticsearch_filesystem_data_size_bytes{job=~".*elasticsearch_exporter.*"})) * 100 > 85
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "ES Data Path Disk usage High"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES data path disk usage above 85%, flood stage watermark at 95% will set index read-only (node: {{ $labels.name }}, path: {{ $labels.mount }}, current value: {{ $value }})"
+
+  - alert: ESPendingTasksAlert
+    expr: elasticsearch_cluster_health_number_of_pending_tasks{job=~".*elasticsearch_exporter.*"} > 0
+    for: 15m
+    labels:
+      severity: High
+    annotations:
+      summary: "ES Cluster Pending Tasks Stuck"
+      description: "app: {{ $labels.app }}, env: {{ $labels.env }}, ES cluster has pending tasks for 15m, master may be stuck (cluster: {{ $labels.cluster }}, current value: {{ $value }})"
