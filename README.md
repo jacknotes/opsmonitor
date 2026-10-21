@@ -1,6 +1,6 @@
 # OpsMonitor — Grafana 仪表盘与 Prometheus 告警规则合集
 
-面向中间件运维监控的合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL** 四大常用组件。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
+面向中间件运维监控的合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL、Nginx** 等常用组件。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
 
 ## 仪表盘一览
 
@@ -14,6 +14,8 @@
 | `grafana/elasticsearch/` | ElasticSearch | `_JI2VxBGz` | 93 | 社区原版（备份参考） |
 | `grafana/mysql/` | MySQL (Optimized) | `mysql_overview_optimized` | 45 | 推荐 |
 | `grafana/mysql/` | Mysql | `MQWgroiiz` | 39 | 社区原版（备份参考） |
+| `grafana/nginx/` | Nginx (Optimized) | `nginx-opt-2949` | 24 | 推荐，公网入口场景；聚合面板不做 host 过滤（5000+ 分区基数过大），Top-N 面板用 topk 限流，未启用 proxy_cache 已移除缓存分区 |
+| `grafana/nginx/` | Nginx | `iBWpu-rMz` | 10 | 社区原版（备份参考） |
 
 ## 优化版仪表盘特性
 
@@ -33,6 +35,7 @@
 | Redis | [oliver006/redis_exporter](https://github.com/oliver006/redis_exporter) |
 | Elasticsearch | [justwatch/elasticsearch_exporter](https://github.com/justwatch/elasticsearch_exporter) 1.7.0 |
 | MySQL | [prometheus/mysqld_exporter](https://github.com/prometheus/mysqld_exporter) |
+| Nginx | [hnlq715/nginx-vts-exporter](https://github.com/hnlq715/nginx-vts-exporter)（实测 0.10.3 / nginx 1.17.3） |
 | Prometheus | 规则文件兼容 Prometheus 2.x / VictoriaMetrics |
 | Alertmanager | 邮件 / 企业微信 / 钉钉 webhook 路由 |
 
@@ -95,9 +98,12 @@ opsmonitor/
     ├── elasticsearch/
     │   ├── elasticsearch.json         # 社区原版
     │   └── elasticsearch-optimized.json # 优化版（推荐）
-    └── mysql/
-        ├── mysql.json                 # 社区原版
-        └── mysql-optimized.json       # 优化版（推荐）
+    ├── mysql/
+    │   ├── mysql.json                 # 社区原版
+    │   └── mysql-optimized.json       # 优化版（推荐）
+    └── nginx/
+        ├── Nginx.json                 # 社区原版
+        └── Nginx-optimized.json       # 优化版（推荐）
 ```
 
 ## 脱敏说明
