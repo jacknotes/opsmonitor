@@ -386,7 +386,7 @@
               "env": true,
               "fat_middleware": true,
               "fstype": true,
-              "gateway_k8s_hs_com": true,
+              "gateway_example_com": true,
               "id": true,
               "id_like": false,
               "ip": true,
@@ -533,7 +533,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", env=\"pro\", instance=\"192.168.13.236:9100\", ip=\"192.168.13.236\", job=\"consul-node_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", env=\"pro\", instance=\"192.168.xxx:9100\", ip=\"192.168.xxx\", job=\"consul-node_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "time() - node_boot_time_seconds{instance=~\"$node\"}",
@@ -718,7 +718,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "192.168.13.236:9100",
+      "tableColumn": "192.168.xxx:9100",
       "targets": [
         {
           "expr": "node_memory_MemTotal_bytes{instance=~\"$node\"}",
@@ -899,7 +899,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{instance=\"192.168.13.236:9100\"}",
+      "tableColumn": "{instance=\"192.168.xxx:9100\"}",
       "targets": [
         {
           "expr": "(sum(avg(irate(node_cpu_seconds_total{instance=\"$node\",mode!=\"idle\"}[1m])) without(cpu))  by(instance)) * 100",
@@ -994,7 +994,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", env=\"pro\", instance=\"192.168.13.236:9100\", ip=\"192.168.13.236\", job=\"consul-node_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", env=\"pro\", instance=\"192.168.xxx:9100\", ip=\"192.168.xxx\", job=\"consul-node_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "((node_memory_MemTotal_bytes{instance=~\"$node\"} - node_memory_MemAvailable_bytes{instance=~\"$node\"}) / node_memory_MemTotal_bytes{instance=~\"$node\"} * 100)  or (1 - ((node_memory_Buffers_bytes{instance=~\"$node\"}  + node_memory_Cached_bytes{instance=~\"$node\"}  + node_memory_MemFree_bytes{instance=~\"$node\"} ) /node_memory_MemTotal_bytes{instance=~\"$node\"} )) * 100",
@@ -1083,7 +1083,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", device=\"/dev/mapper/data-mydata\", env=\"pro\", fstype=\"xfs\", instance=\"192.168.13.236:9100\", ip=\"192.168.13.236\", job=\"consul-node_exporter\", mountpoint=\"/mydata\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "{app=\"prometheus,alertmanager,grafana,consul,kms-server\", device=\"/dev/mapper/data-mydata\", env=\"pro\", fstype=\"xfs\", instance=\"192.168.xxx:9100\", ip=\"192.168.xxx\", job=\"consul-node_exporter\", mountpoint=\"/mydata\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "100 - ((node_filesystem_avail_bytes{instance=~\"$node\",mountpoint=\"$maxmount\",fstype=~\"ext.*|xfs\"} * 100) / node_filesystem_size_bytes {instance=~\"$node\",mountpoint=\"$maxmount\",fstype=~\"ext.*|xfs\"})",
@@ -2826,8 +2826,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.236:9100",
-          "value": "192.168.13.236:9100"
+          "text": "192.168.xxx:9100",
+          "value": "192.168.xxx:9100"
         },
         "datasource": "Prometheus",
         "definition": "",

@@ -2199,8 +2199,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "172.168.2.185:9182",
-          "value": "172.168.2.185:9182"
+          "text": "172.168.xxx:9182",
+          "value": "172.168.xxx:9182"
         },
         "datasource": "Prometheus",
         "definition": "label_values(windows_iis_worker_threads{job=~\"$job\"},instance)",

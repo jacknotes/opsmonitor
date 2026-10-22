@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "基于原版 Redis 面板（gnetId 763）的优化版，指标基于 oliver005/redis_exporter，适用于 Grafana 7.1.4。Redis Info 表始终展示全部实例（不受 instance 变量过滤）。本次基于 exporter 实际输出补齐了未覆盖的重要指标：持久化（RDB 落盘间隔/脏键数/bgsave 状态/fork 耗时）、慢查询、AOF 状态、探活、主从复制偏移、连接细节（新建/拒绝/阻塞）、进程 CPU、命令平均延迟 Top5、各 DB 平均 TTL、Pub/Sub。每个面板悬停标题旁的 i 图标可查看中文说明。 面板按分区布局：总览 / 内存 / 连接与复制 / 持久化与健康 / 性能与命令 / 键空间。",
+  "description": "基于 oliver005/redis_exporter 指标，适用于 Grafana 7.1.4。Redis Info 表始终展示全部实例（不受 instance 变量过滤）。覆盖指标：持久化（RDB 落盘间隔/脏键数/bgsave 状态/fork 耗时）、慢查询、AOF 状态、探活、主从复制偏移、连接细节（新建/拒绝/阻塞）、进程 CPU、命令平均延迟 Top5、各 DB 平均 TTL、Pub/Sub。每个面板悬停标题旁的 i 图标可查看中文说明。 面板按分区布局：总览 / 内存 / 连接与复制 / 持久化与健康 / 性能与命令 / 键空间。",
   "editable": true,
   "gnetId": 763,
   "graphTooltip": 0,
@@ -1156,7 +1156,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "used_memory 与 maxmemory 上限的对照曲线。原版第二条线引用了不存在的 $node_memory 变量导致永远无数据，已改为 maxmemory 上限线。"
+      "description": "used_memory 与 maxmemory 上限的对照曲线。"
     },
     {
       "type": "row",
@@ -2522,7 +2522,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "键空间命中/未命中速率。命中率 = hits/(hits+misses)，缓存场景建议 >90%；原版 irate(5m) 实际只取最新两个点、曲线抖动大，已改为 rate(5m) 更平稳。"
+      "description": "键空间命中/未命中速率。命中率 = hits/(hits+misses)，缓存场景建议 >90%。"
     },
     {
       "aliasColors": {},

@@ -1643,8 +1643,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "172.168.2.111:9182",
-          "value": "172.168.2.111:9182"
+          "text": "172.168.xxx:9182",
+          "value": "172.168.xxx:9182"
         },
         "datasource": "Prometheus",
         "definition": "",

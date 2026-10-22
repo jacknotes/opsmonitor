@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "wmi_exporter 0.7 专用优化版：仅使用 0.7 实测提供的采集器（cpu/cs/logical_disk/net/os/service/system），windows_exporter 主机请使用 Windows (Optimized) 面板。",
+  "description": "指标标签基于 192.168.xxx:9182 实测校验：1) 兼容新旧 windows_exporter 命名（net/tcp/memory 等关键查询均带 or 回退）；2) 总览表主机名/操作系统改用双查询自动合并，不依赖 PromQL join；3) 各主机总览趋势图改为表格一览；4) 内存使用率优先 available 口径；5) 服务/进程面板依赖 prometheus.yml 调整（放行 windows_service_state、移除 labeldrop process_id），reload 后生效。",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 1,
@@ -38,13 +38,13 @@
       },
       "id": 100,
       "panels": [],
-      "title": "资源总览（关联JOB项）当前选中实例：$instance",
+      "title": "资源总览（关联JOB项）当前选中主机：【$show_hostname】实例：$instance",
       "type": "row"
     },
     {
       "columns": [],
       "datasource": "Prometheus",
-      "description": "wmi_exporter 0.7 主机资源总览（仅随 $job 过滤），每台主机一行。0.7 不提供主机名/操作系统/CPU频率指标，相应列省略；「运行服务」列因 wmi_service_state 在 Prometheus 采集层被裁剪改为线程数；点击 instance 列跳转本面板明细。",
+      "description": "全部主机资源总览（仅随 $job 过滤），每台主机一行。查询口径与源面板一致并经现网验证：主机名/操作系统由 os_info 与 cs_hostname 按实例关联（VictoriaMetrics 自动合并标签）；「运行服务」列因 windows_service_state 在 Prometheus 采集层被裁剪（降低内存占用）改为线程数；C盘/最大分区阈值修正为 0-1 口径（源面板 60/80 阈值对 percentunit 单位无效，颜色不变化）；内存使用率为 free/总内存 口径。个别主机若多列为空，多为该主机 exporter 版本过旧或采集器缺失所致。",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -53,10 +53,10 @@
       },
       "fontSize": "80%",
       "gridPos": {
-        "h": 7,
-        "w": 24,
         "x": 0,
-        "y": 1
+        "y": 1,
+        "w": 24,
+        "h": 7
       },
       "id": 101,
       "pageSize": null,
@@ -76,12 +76,46 @@
           "thresholds": [],
           "type": "string",
           "unit": "short",
+          "alias": "操作系统",
+          "pattern": "product"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "alias": "主机名",
+          "pattern": "hostname"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
           "alias": "instance(连接到明细)",
           "pattern": "instance",
           "link": true,
           "linkTargetBlank": false,
           "linkTooltip": "跳转实例：${__cell_1}",
-          "linkUrl": "/d/win-wmi-opt-9182/?var-job=$job&var-hostname=All&var-instance=${__cell_1}"
+          "linkUrl": "/d/win-opt-9182/?var-job=$job&var-hostname=All&var-instance=${__cell_1}"
         },
         {
           "align": "auto",
@@ -116,23 +150,6 @@
           "unit": "bytes",
           "alias": "总内存",
           "pattern": "Value #C"
-        },
-        {
-          "align": "auto",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "thresholds": [],
-          "type": "string",
-          "unit": "short",
-          "alias": "用户数",
-          "pattern": "Value #L"
         },
         {
           "align": "auto",
@@ -225,7 +242,7 @@
           "thresholds": [],
           "type": "string",
           "unit": "short",
-          "alias": "线程数",
+          "alias": "运行服务",
           "pattern": "Value #H"
         },
         {
@@ -269,6 +286,23 @@
           "pattern": "Value #J"
         },
         {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "number",
+          "unit": "rothz",
+          "alias": "CPU频率",
+          "pattern": "Value #K"
+        },
+        {
           "align": "right",
           "colorMode": null,
           "colors": [
@@ -292,8 +326,16 @@
           "interval": "",
           "legendFormat": "",
           "instant": true,
+          "refId": "A",
+          "expr": "windows_os_info{job=~\"$job\"} * on(instance) group_right(product) windows_cs_hostname"
+        },
+        {
+          "format": "table",
+          "interval": "",
+          "legendFormat": "",
+          "instant": true,
           "refId": "B",
-          "expr": "count by (instance) (wmi_cpu_time_total{job=~\"$job\",mode=\"idle\"})"
+          "expr": "windows_cs_logical_processors{job=~\"$job\"} - 0"
         },
         {
           "format": "table",
@@ -301,7 +343,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "C",
-          "expr": "max by (instance) (wmi_cs_physical_memory_bytes{job=~\"$job\"})"
+          "expr": "windows_cs_physical_memory_bytes{job=~\"$job\"} - 0"
         },
         {
           "format": "table",
@@ -309,7 +351,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "D",
-          "expr": "max by (instance) (time() - wmi_system_system_up_time{job=~\"$job\"})"
+          "expr": "time() - windows_system_system_up_time{job=~\"$job\"}"
         },
         {
           "format": "table",
@@ -317,7 +359,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "E",
-          "expr": "max by (instance) (1 - (wmi_logical_disk_free_bytes{job=~\"$job\",volume=~\"C:\"} / (custom_wmi_logical_disk_size_bytes{job=~\"$job\",volume=~\"C:\"} or wmi_logical_disk_size_bytes{job=~\"$job\",volume=~\"C:\"})))"
+          "expr": "1 - (windows_logical_disk_free_bytes{job=~\"$job\",volume=~\"C:\"}/windows_logical_disk_size_bytes{job=~\"$job\",volume=~\"C:\"})"
         },
         {
           "format": "table",
@@ -325,7 +367,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "F",
-          "expr": "max by (instance) (1 - wmi_logical_disk_free_bytes{job=~\"$job\",volume!~\"HarddiskVolume.*\"} / (custom_wmi_logical_disk_size_bytes{job=~\"$job\",volume!~\"HarddiskVolume.*\"} or wmi_logical_disk_size_bytes{job=~\"$job\",volume!~\"HarddiskVolume.*\"}))"
+          "expr": "max by (instance) (1-windows_logical_disk_free_bytes/windows_logical_disk_size_bytes)"
         },
         {
           "format": "table",
@@ -333,7 +375,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "G",
-          "expr": "max by (instance) (wmi_os_processes{job=~\"$job\"})"
+          "expr": "windows_os_processes{job=~\"$job\"}"
         },
         {
           "format": "table",
@@ -341,7 +383,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "H",
-          "expr": "max by (instance) (wmi_system_threads{job=~\"$job\"})"
+          "expr": "sum by (instance) (windows_service_state{job=~\"$job\",state=~\"running\"})"
         },
         {
           "format": "table",
@@ -349,7 +391,7 @@
           "legendFormat": "",
           "instant": true,
           "refId": "I",
-          "expr": "clamp_min(100 - (avg by (instance) (irate(wmi_cpu_time_total{job=~\"$job\",mode=\"idle\"}[2m])) * 100), 0)"
+          "expr": "clamp_min(100 - (avg by (instance) (irate(windows_cpu_time_total{job=~\"$job\",mode=\"idle\"}[2m])) * 100), 0)"
         },
         {
           "format": "table",
@@ -357,13 +399,15 @@
           "legendFormat": "",
           "instant": true,
           "refId": "J",
-          "expr": "100 - 100 * max by (instance) (wmi_os_physical_memory_free_bytes{job=~\"$job\"}) / max by (instance) (wmi_cs_physical_memory_bytes{job=~\"$job\"})"
+          "expr": "100 - 100 * windows_os_physical_memory_free_bytes{job=~\"$job\"} / windows_cs_physical_memory_bytes{job=~\"$job\"}"
         },
         {
-          "refId": "L",
-          "expr": "max by (instance) (wmi_os_users{job=~\"$job\"})",
           "format": "table",
-          "instant": true
+          "interval": "",
+          "legendFormat": "",
+          "instant": true,
+          "refId": "K",
+          "expr": "avg by (instance) (windows_cpu_core_frequency_mhz{job=~\"$job\"})"
         }
       ],
       "timeFrom": null,
@@ -382,10 +426,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
-        "w": 5,
         "x": 0,
-        "y": 8
+        "y": 8,
+        "w": 5,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 141,
@@ -422,7 +466,7 @@
           "legendFormat": "{{instance}}",
           "instant": false,
           "refId": "B",
-          "expr": "clamp_min(100 - (avg by (instance) (irate(wmi_cpu_time_total{job=~\"$job\",mode=\"idle\"}[2m])) * 100), 0)"
+          "expr": "clamp_min(100 - (avg by (instance) (irate(windows_cpu_time_total{job=~\"$job\",mode=\"idle\"}[2m])) * 100), 0)"
         }
       ],
       "timeFrom": null,
@@ -475,10 +519,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
-        "w": 5,
         "x": 5,
-        "y": 8
+        "y": 8,
+        "w": 5,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 142,
@@ -515,7 +559,7 @@
           "legendFormat": "{{instance}}",
           "instant": false,
           "refId": "A",
-          "expr": "100.0 - 100 * wmi_os_physical_memory_free_bytes{job=~\"$job\"} / wmi_cs_physical_memory_bytes{job=~\"$job\"}"
+          "expr": "100.0 - 100 * windows_os_physical_memory_free_bytes{job=~\"$job\"} / windows_cs_physical_memory_bytes{job=~\"$job\"}"
         }
       ],
       "timeFrom": null,
@@ -568,10 +612,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
-        "w": 5,
         "x": 10,
-        "y": 8
+        "y": 8,
+        "w": 5,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 143,
@@ -608,7 +652,7 @@
           "legendFormat": "{{instance}}_上传",
           "instant": false,
           "refId": "B",
-          "expr": "max by (instance) (irate(wmi_net_bytes_sent_total{job=~\"$job\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[2m])) * 8"
+          "expr": "max by (instance) (irate(windows_net_bytes_sent_total{job=~\"$job\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[2m])) * 8"
         },
         {
           "format": "time_series",
@@ -616,7 +660,7 @@
           "legendFormat": "{{instance}}_下载",
           "instant": false,
           "refId": "A",
-          "expr": "-max by (instance) (irate(wmi_net_bytes_received_total{job=~\"$job\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[2m])) * 8"
+          "expr": "-max by (instance) (irate(windows_net_bytes_received_total{job=~\"$job\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[2m])) * 8"
         }
       ],
       "timeFrom": null,
@@ -669,10 +713,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
-        "w": 5,
         "x": 15,
-        "y": 8
+        "y": 8,
+        "w": 5,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 144,
@@ -709,7 +753,7 @@
           "legendFormat": "{{instance}}_读取",
           "instant": false,
           "refId": "A",
-          "expr": "-max by (instance) (irate(wmi_logical_disk_read_bytes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
+          "expr": "-max by (instance) (irate(windows_logical_disk_read_bytes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
         },
         {
           "format": "time_series",
@@ -717,7 +761,7 @@
           "legendFormat": "{{instance}}_写入",
           "instant": false,
           "refId": "B",
-          "expr": "max by (instance) (irate(wmi_logical_disk_write_bytes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
+          "expr": "max by (instance) (irate(windows_logical_disk_write_bytes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
         }
       ],
       "timeFrom": null,
@@ -770,10 +814,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
-        "w": 4,
         "x": 20,
-        "y": 8
+        "y": 8,
+        "w": 4,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 145,
@@ -810,7 +854,7 @@
           "legendFormat": "{{instance}}_读取",
           "instant": false,
           "refId": "B",
-          "expr": "-max by (instance) (irate(wmi_logical_disk_reads_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
+          "expr": "-max by (instance) (irate(windows_logical_disk_reads_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
         },
         {
           "format": "time_series",
@@ -818,7 +862,7 @@
           "legendFormat": "{{instance}}_写入",
           "instant": false,
           "refId": "C",
-          "expr": "max by (instance) (irate(wmi_logical_disk_writes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
+          "expr": "max by (instance) (irate(windows_logical_disk_writes_total{job=~\"$job\",volume!~\"HarddiskVolume.*\"}[2m]))"
         }
       ],
       "timeFrom": null,
@@ -905,10 +949,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 0,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 108,
       "interval": null,
@@ -936,7 +980,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "100 - avg(irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m])) * 100"
+          "expr": "100 - avg(irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m])) * 100"
         }
       ],
       "timeFrom": null,
@@ -947,7 +991,7 @@
     {
       "cacheTimeout": null,
       "datasource": "Prometheus",
-      "description": "内存使用率（available 口径，与任务管理器一致）。",
+      "description": "内存使用率：优先 available 口径（与任务管理器一致），旧版 exporter（无 memory 采集器）自动回退 free/总内存口径。",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -974,10 +1018,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 3,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 109,
       "interval": null,
@@ -1005,7 +1049,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "100 - 100 * wmi_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / wmi_os_visible_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "(100 - 100 * windows_memory_available_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}) or (100 - 100 * windows_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"})"
         }
       ],
       "timeFrom": null,
@@ -1035,10 +1079,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 6,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 110,
       "interval": null,
@@ -1066,7 +1110,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "timeFrom": null,
@@ -1096,10 +1140,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 9,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 111,
       "interval": null,
@@ -1127,7 +1171,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_cs_logical_processors{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_cs_logical_processors{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "timeFrom": null,
@@ -1157,10 +1201,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 12,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 112,
       "interval": null,
@@ -1188,7 +1232,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "time() - wmi_system_system_up_time{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "time() - windows_system_system_up_time{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "timeFrom": null,
@@ -1218,10 +1262,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 15,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 113,
       "interval": null,
@@ -1249,7 +1293,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_os_processes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_os_processes{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "timeFrom": null,
@@ -1279,10 +1323,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 18,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 114,
       "interval": null,
@@ -1310,7 +1354,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_os_users{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_os_users{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "timeFrom": null,
@@ -1359,10 +1403,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
         "x": 21,
-        "y": 15
+        "y": 15,
+        "w": 3,
+        "h": 4
       },
       "id": 115,
       "interval": null,
@@ -1399,6 +1443,19 @@
       "type": "stat"
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 200,
+      "panels": [],
+      "title": "CPU（所有版本）",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -1417,10 +1474,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 0,
-        "y": 19
+        "y": 20,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 116,
@@ -1459,7 +1516,7 @@
           "legendFormat": "",
           "instant": false,
           "refId": "A",
-          "expr": "100 - avg(irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m])) * 100"
+          "expr": "100 - avg(irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m])) * 100"
         }
       ],
       "thresholds": [
@@ -1533,10 +1590,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 19
+        "x": 6,
+        "y": 20,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 117,
@@ -1575,7 +1632,7 @@
           "legendFormat": "user",
           "instant": false,
           "refId": "A",
-          "expr": "avg by (mode) (irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"user\"}[5m])) * 100"
+          "expr": "avg by (mode) (irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"user\"}[5m])) * 100"
         },
         {
           "format": "time_series",
@@ -1583,7 +1640,7 @@
           "legendFormat": "privileged",
           "instant": false,
           "refId": "B",
-          "expr": "avg by (mode) (irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"privileged\"}[5m])) * 100"
+          "expr": "avg by (mode) (irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"privileged\"}[5m])) * 100"
         },
         {
           "format": "time_series",
@@ -1591,7 +1648,7 @@
           "legendFormat": "interrupt",
           "instant": false,
           "refId": "C",
-          "expr": "avg by (mode) (irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"interrupt\"}[5m])) * 100"
+          "expr": "avg by (mode) (irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"interrupt\"}[5m])) * 100"
         },
         {
           "format": "time_series",
@@ -1599,7 +1656,7 @@
           "legendFormat": "dpc",
           "instant": false,
           "refId": "D",
-          "expr": "avg by (mode) (irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"dpc\"}[5m])) * 100"
+          "expr": "avg by (mode) (irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"dpc\"}[5m])) * 100"
         }
       ],
       "thresholds": [],
@@ -1663,10 +1720,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 19
+        "x": 12,
+        "y": 20,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 118,
@@ -1705,7 +1762,7 @@
           "legendFormat": "core-{{core}}",
           "instant": false,
           "refId": "A",
-          "expr": "100 - irate(wmi_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m]) * 100"
+          "expr": "100 - irate(windows_cpu_time_total{job=~\"$job\",instance=~\"$instance\",mode=\"idle\"}[5m]) * 100"
         }
       ],
       "thresholds": [],
@@ -1756,7 +1813,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "物理内存使用率（available 口径）与虚拟内存提交率（committed/commit_limit，旧 exporter 回退 virtual_memory 口径）。提交率长期接近 100% 需关注提交上限或内存泄漏。",
+      "description": "每秒硬件中断与 DPC（延迟过程调用）次数。过高通常指向网卡/驱动问题。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -1769,10 +1826,137 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
+        "x": 18,
+        "y": 20,
+        "w": 6,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 138,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "中断/s",
+          "instant": false,
+          "refId": "A",
+          "expr": "sum(irate(windows_cpu_interrupts_total{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "DPC/s",
+          "instant": false,
+          "refId": "B",
+          "expr": "sum(irate(windows_cpu_dpcs_total{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "CPU中断与DPC",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "pps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
         "x": 0,
-        "y": 25
+        "y": 26
+      },
+      "id": 201,
+      "panels": [],
+      "title": "内存（所有版本；「内存分页活动」换页曲线需新版采集器）",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "物理内存使用率：优先 available 口径，旧 exporter（无 memory 采集器）回退 free/总内存口径；虚拟内存提交率（committed/commit_limit，旧 exporter 回退 virtual_memory 口径）。提交率长期接近 100% 需关注提交上限或内存泄漏。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 119,
@@ -1811,7 +1995,7 @@
           "legendFormat": "内存使用率",
           "instant": false,
           "refId": "A",
-          "expr": "100 - 100 * wmi_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / wmi_os_visible_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "(100 - 100 * windows_memory_available_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}) or (100 - 100 * windows_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"})"
         },
         {
           "format": "time_series",
@@ -1819,7 +2003,7 @@
           "legendFormat": "虚拟内存提交率",
           "instant": false,
           "refId": "B",
-          "expr": "100 - 100 * wmi_os_virtual_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / wmi_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "(100 * windows_memory_committed_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_memory_commit_limit{job=~\"$job\",instance=~\"$instance\"}) or (100 - 100 * windows_os_virtual_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"})"
         }
       ],
       "thresholds": [],
@@ -1883,10 +2067,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 25
+        "x": 6,
+        "y": 27,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 120,
@@ -1920,24 +2104,36 @@
       "steppedLine": false,
       "targets": [
         {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "物理内存总量",
+          "instant": false,
           "refId": "A",
-          "expr": "wmi_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}",
-          "legendFormat": "物理内存总量"
+          "expr": "windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
         },
         {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "可用物理内存",
+          "instant": false,
           "refId": "B",
-          "expr": "wmi_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"}",
-          "legendFormat": "可用物理内存"
+          "expr": "windows_memory_available_bytes{job=~\"$job\",instance=~\"$instance\"} or windows_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"}"
         },
         {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "已提交虚拟内存",
+          "instant": false,
           "refId": "C",
-          "expr": "wmi_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"}",
-          "legendFormat": "已提交虚拟内存"
+          "expr": "windows_memory_committed_bytes{job=~\"$job\",instance=~\"$instance\"} or windows_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"}"
         },
         {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "提交上限",
+          "instant": false,
           "refId": "D",
-          "expr": "wmi_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"} + wmi_os_virtual_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"}",
-          "legendFormat": "提交上限"
+          "expr": "windows_memory_commit_limit{job=~\"$job\",instance=~\"$instance\"} or (windows_os_virtual_memory_bytes{job=~\"$job\",instance=~\"$instance\"} + windows_os_virtual_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"})"
         }
       ],
       "thresholds": [],
@@ -1988,7 +2184,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "分页文件（页面文件）使用率。wmi_exporter 0.7 无 memory 采集器，不提供分页 IO 明细。使用率长期 >80% 需扩容页面文件或排查内存泄漏。",
+      "description": "内存换页读写曲线（硬错误/换页 I/O）需 memory 采集器（windows_exporter 0.20.0+）；分页文件使用率曲线为 os 采集器指标，所有版本可用——0.15.0 主机仅显示该曲线。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -2001,10 +2197,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 25
+        "x": 12,
+        "y": 27,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 121,
@@ -2038,9 +2234,151 @@
       "steppedLine": false,
       "targets": [
         {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "硬页读入次数/s",
+          "instant": false,
           "refId": "A",
-          "expr": "100 * (1 - wmi_os_paging_free_bytes{job=~\"$job\",instance=~\"$instance\"} / wmi_os_paging_limit_bytes{job=~\"$job\",instance=~\"$instance\"})",
-          "legendFormat": "分页文件使用率"
+          "expr": "irate(windows_memory_swap_page_reads_total{job=~\"$job\",instance=~\"$instance\"}[5m]) or irate(windows_memory_swap_pages_read_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "硬页写出次数/s",
+          "instant": false,
+          "refId": "B",
+          "expr": "irate(windows_memory_swap_page_writes_total{job=~\"$job\",instance=~\"$instance\"}[5m]) or irate(windows_memory_swap_pages_written_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "换入页数/s",
+          "instant": false,
+          "refId": "C",
+          "expr": "irate(windows_memory_swap_pages_read_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "换出页数/s",
+          "instant": false,
+          "refId": "D",
+          "expr": "irate(windows_memory_swap_pages_written_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "分页文件使用率",
+          "instant": false,
+          "refId": "E",
+          "expr": "100 * (1 - windows_os_paging_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_os_paging_limit_bytes{job=~\"$job\",instance=~\"$instance\"})",
+          "yaxis": 2
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "内存分页活动",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "分页文件（页面文件）使用率。原\"服务状态\"面板依赖 windows_service_state——该指标已在 prometheus.yml 采集层被刻意裁剪（降低 Prometheus 内存占用），无法展示，故改为两代采集端均提供的 os_paging 指标。使用率长期 >80% 需扩容页面文件或排查内存泄漏。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "x": 18,
+        "y": 27,
+        "w": 6,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 135,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "分页文件使用率",
+          "instant": false,
+          "refId": "A",
+          "expr": "100 * (1 - windows_os_paging_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_os_paging_limit_bytes{job=~\"$job\",instance=~\"$instance\"})"
         }
       ],
       "thresholds": [],
@@ -2067,7 +2405,7 @@
           "format": "percent",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": 100,
           "min": 0,
           "show": true
         },
@@ -2084,6 +2422,19 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 202,
+      "panels": [],
+      "title": "磁盘（所有版本）",
+      "type": "row"
     },
     {
       "datasource": "Prometheus",
@@ -2119,10 +2470,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 0,
-        "y": 31
+        "y": 34,
+        "w": 8,
+        "h": 6
       },
       "id": 123,
       "links": [],
@@ -2146,7 +2497,7 @@
           "legendFormat": "{{volume}}",
           "instant": true,
           "refId": "A",
-          "expr": "(100 - (wmi_logical_disk_free_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"} / custom_wmi_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}) * 100) or (100 - (wmi_logical_disk_free_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"} / wmi_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}) * 100)"
+          "expr": "100 - (windows_logical_disk_free_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"} / windows_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}) * 100"
         }
       ],
       "title": "各分区使用率",
@@ -2159,7 +2510,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "各分区读写吞吐（原版过滤条件 volume!=\"HarddiskVolume1\" 不完整，统一改为排除 HarddiskVolume.*）。",
+      "description": "各分区读写吞吐（已排除 HarddiskVolume.*）。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -2172,10 +2523,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 8,
-        "y": 31
+        "y": 34,
+        "w": 8,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 124,
@@ -2214,7 +2565,7 @@
           "legendFormat": "{{volume}} 读",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_logical_disk_read_bytes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_read_bytes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         },
         {
           "format": "time_series",
@@ -2222,7 +2573,7 @@
           "legendFormat": "{{volume}} 写",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_logical_disk_write_bytes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_write_bytes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         }
       ],
       "thresholds": [],
@@ -2286,10 +2637,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 16,
-        "y": 31
+        "y": 34,
+        "w": 8,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 125,
@@ -2328,7 +2679,7 @@
           "legendFormat": "{{volume}} 读",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_logical_disk_reads_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_reads_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         },
         {
           "format": "time_series",
@@ -2336,7 +2687,7 @@
           "legendFormat": "{{volume}} 写",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_logical_disk_writes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_writes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         }
       ],
       "thresholds": [],
@@ -2387,7 +2738,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "平均单次 IO 延迟 = 累计IO耗时/s ÷ IO次数/s。磁盘延迟持续 >50ms 需关注存储性能（新增面板）。",
+      "description": "平均单次 IO 延迟 = 累计IO耗时/s ÷ IO次数/s。磁盘延迟持续 >50ms 需关注存储性能。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -2400,10 +2751,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 0,
-        "y": 37
+        "y": 40,
+        "w": 8,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 126,
@@ -2442,7 +2793,7 @@
           "legendFormat": "{{volume}} 读延迟",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_logical_disk_read_seconds_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m]) / irate(wmi_logical_disk_reads_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_read_seconds_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m]) / irate(windows_logical_disk_reads_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         },
         {
           "format": "time_series",
@@ -2450,7 +2801,7 @@
           "legendFormat": "{{volume}} 写延迟",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_logical_disk_write_seconds_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m]) / irate(wmi_logical_disk_writes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
+          "expr": "irate(windows_logical_disk_write_seconds_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m]) / irate(windows_logical_disk_writes_total{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}[5m])"
         }
       ],
       "thresholds": [],
@@ -2501,7 +2852,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "当前排队的 IO 请求数（requests_queued）。长期高于 2×磁盘数说明磁盘繁忙（新增面板）。",
+      "description": "当前排队的 IO 请求数（requests_queued）。长期高于 2×磁盘数说明磁盘繁忙。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -2514,10 +2865,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 8,
-        "y": 37
+        "y": 40,
+        "w": 8,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 127,
@@ -2556,7 +2907,7 @@
           "legendFormat": "{{volume}}",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_logical_disk_requests_queued{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
+          "expr": "windows_logical_disk_requests_queued{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
         }
       ],
       "thresholds": [],
@@ -2620,10 +2971,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 16,
-        "y": 37
+        "y": 40,
+        "w": 8,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 128,
@@ -2662,7 +3013,7 @@
           "legendFormat": "{{volume}} 剩余",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_logical_disk_free_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
+          "expr": "windows_logical_disk_free_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
         },
         {
           "format": "time_series",
@@ -2670,7 +3021,7 @@
           "legendFormat": "{{volume}} 总量",
           "instant": false,
           "refId": "B",
-          "expr": "custom_wmi_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"} or wmi_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
+          "expr": "windows_logical_disk_size_bytes{job=~\"$job\",instance=~\"$instance\",volume!~\"HarddiskVolume.*\"}"
         }
       ],
       "thresholds": [],
@@ -2716,6 +3067,19 @@
       }
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 203,
+      "panels": [],
+      "title": "网络（所有版本；TCP 连接/TCP 细分需新版采集器）",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -2734,10 +3098,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
         "x": 0,
-        "y": 43
+        "y": 47,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 129,
@@ -2776,7 +3140,7 @@
           "legendFormat": "{{nic}} 收",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_net_bytes_received_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) * 8"
+          "expr": "irate(windows_net_bytes_received_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) * 8"
         },
         {
           "format": "time_series",
@@ -2784,7 +3148,7 @@
           "legendFormat": "{{nic}} 发",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_net_bytes_sent_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) * 8"
+          "expr": "irate(windows_net_bytes_sent_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) * 8"
         }
       ],
       "thresholds": [],
@@ -2848,10 +3212,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 43
+        "x": 6,
+        "y": 47,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 130,
@@ -2890,7 +3254,7 @@
           "legendFormat": "{{nic}}",
           "instant": false,
           "refId": "A",
-          "expr": "clamp_max(100 * irate(wmi_net_bytes_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) / wmi_net_current_bandwidth{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}, 100) or clamp_max(100 * irate(wmi_net_bytes_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) / wmi_net_current_bandwidth{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}, 100)"
+          "expr": "clamp_max(100 * irate(windows_net_bytes_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) / windows_net_current_bandwidth_bytes{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}, 100) or clamp_max(100 * irate(windows_net_bytes_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) / windows_net_current_bandwidth{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}, 100)"
         }
       ],
       "thresholds": [],
@@ -2954,10 +3318,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 43
+        "x": 12,
+        "y": 47,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 131,
@@ -2996,7 +3360,7 @@
           "legendFormat": "{{nic}} 接收错误/丢弃",
           "instant": false,
           "refId": "A",
-          "expr": "(irate(wmi_net_packets_received_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(wmi_net_packets_received_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])) or (irate(wmi_net_packets_received_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(wmi_net_packets_received_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]))"
+          "expr": "(irate(windows_net_packets_received_discarded_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(windows_net_packets_received_errors_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])) or (irate(windows_net_packets_received_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(windows_net_packets_received_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]))"
         },
         {
           "format": "time_series",
@@ -3004,7 +3368,7 @@
           "legendFormat": "{{nic}} 发送错误/丢弃",
           "instant": false,
           "refId": "B",
-          "expr": "(irate(wmi_net_packets_outbound_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(wmi_net_packets_outbound_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])) or (irate(wmi_net_packets_outbound_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(wmi_net_packets_outbound_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]))"
+          "expr": "(irate(windows_net_packets_outbound_discarded_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(windows_net_packets_outbound_errors_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])) or (irate(windows_net_packets_outbound_discarded{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]) + irate(windows_net_packets_outbound_errors{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m]))"
         }
       ],
       "thresholds": [],
@@ -3055,7 +3419,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "各网卡收发包速率，与吞吐面板对照可发现小包风暴（新增面板）。",
+      "description": "各网卡收发包速率，与吞吐面板对照可发现小包风暴。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -3068,10 +3432,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 49
+        "x": 18,
+        "y": 47,
+        "w": 6,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 134,
@@ -3110,7 +3474,7 @@
           "legendFormat": "{{nic}} 收包",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_net_packets_received_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])"
+          "expr": "irate(windows_net_packets_received_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])"
         },
         {
           "format": "time_series",
@@ -3118,7 +3482,7 @@
           "legendFormat": "{{nic}} 发包",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_net_packets_sent_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])"
+          "expr": "irate(windows_net_packets_sent_total{job=~\"$job\",instance=~\"$instance\",nic!~\"isatap.*|VPN.*|Loopback.*\"}[5m])"
         }
       ],
       "thresholds": [],
@@ -3169,7 +3533,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "系统进程总数与线程总数（原版独立面板合并）。",
+      "description": "TCP 连接状态与建连速率。需 tcp 采集器（windows_exporter 0.20.0+）；0.15.0 无 tcp 采集器，无数据。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -3182,10 +3546,283 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
+        "x": 0,
+        "y": 53,
+        "w": 12,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 132,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "已建立连接数",
+          "instant": false,
+          "refId": "A",
+          "expr": "sum(windows_tcp_connections_established{job=~\"$job\",instance=~\"$instance\"})"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "主动新建/s",
+          "instant": false,
+          "refId": "B",
+          "expr": "sum(irate(windows_tcp_connections_active_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_connections_active{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "被动新建/s",
+          "instant": false,
+          "refId": "C",
+          "expr": "sum(irate(windows_tcp_connections_passive_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_connections_passive{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "连接失败/s",
+          "instant": false,
+          "refId": "D",
+          "expr": "sum(irate(windows_tcp_connection_failures_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_connections_failures{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "连接重置/s",
+          "instant": false,
+          "refId": "E",
+          "expr": "sum(irate(windows_tcp_connections_reset_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_connections_reset{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "网络连接状态",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "TCP 收发/重传分段速率。需 tcp 采集器（windows_exporter 0.20.0+）；0.15.0 无 tcp 采集器，无数据。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "x": 12,
+        "y": 53,
+        "w": 12,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 133,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "发送段/s",
+          "instant": false,
+          "refId": "A",
+          "expr": "sum(irate(windows_tcp_segments_sent_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_segments_sent{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "接收段/s",
+          "instant": false,
+          "refId": "B",
+          "expr": "sum(irate(windows_tcp_segments_received_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_segments_received{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        },
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "重传段/s",
+          "instant": false,
+          "refId": "C",
+          "expr": "sum(irate(windows_tcp_segments_retransmitted_total{job=~\"$job\",instance=~\"$instance\"}[5m])) or sum(irate(windows_tcp_segments_retransmitted{job=~\"$job\",instance=~\"$instance\"}[5m]))"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "TCP流量细分",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "pps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "id": 204,
+      "panels": [],
+      "title": "进程（Top5 面板需新版 process 采集器）",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "进程/线程总数为系统级指标（os/system 采集器），所有版本可用。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "x": 0,
+        "y": 60,
         "w": 8,
-        "x": 8,
-        "y": 49
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 136,
@@ -3224,7 +3861,7 @@
           "legendFormat": "进程数",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_os_processes{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_os_processes{job=~\"$job\",instance=~\"$instance\"}"
         },
         {
           "format": "time_series",
@@ -3232,7 +3869,7 @@
           "legendFormat": "线程数",
           "instant": false,
           "refId": "B",
-          "expr": "wmi_system_threads{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_system_threads{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "thresholds": [],
@@ -3283,7 +3920,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "上下文切换速率（左轴）与异常分发速率（右轴）。异常分发持续走高可能反映应用反复抛错（新增右轴拆分，原版只有异常单图）。",
+      "description": "Top5 进程工作集内存。需 process 采集器（windows_exporter 0.20.0+）；0.15.0 无 process 采集器，无数据。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -3296,10 +3933,235 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
+        "x": 8,
+        "y": 60,
         "w": 8,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 122,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "{{process}}",
+          "instant": false,
+          "refId": "A",
+          "expr": "topk(5, windows_process_working_set_private_bytes{job=~\"$job\",instance=~\"$instance\",process!~\"_Total|Idle\"}) or topk(5, windows_process_working_set_bytes{job=~\"$job\",instance=~\"$instance\",process!~\"_Total|Idle\"})"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Top5进程内存",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Top5 进程 CPU 占用。需 process 采集器（windows_exporter 0.20.0+）；0.15.0 无 process 采集器，无数据。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
         "x": 16,
-        "y": 49
+        "y": 60,
+        "w": 8,
+        "h": 6
+      },
+      "hiddenSeries": false,
+      "id": 140,
+      "isNew": true,
+      "legend": {
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "{{process}}",
+          "instant": false,
+          "refId": "A",
+          "expr": "topk(5, irate(windows_process_cpu_time_total{job=~\"$job\",instance=~\"$instance\",process!~\"_Total|Idle\"}[5m]) * 100)"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Top5进程CPU",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "id": 205,
+      "panels": [],
+      "title": "系统与采集器（所有版本）",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "上下文切换速率（左轴）与异常分发速率（右轴）。异常分发持续走高可能反映应用反复抛错。",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "x": 0,
+        "y": 67,
+        "w": 12,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 137,
@@ -3343,7 +4205,7 @@
           "legendFormat": "上下文切换/s",
           "instant": false,
           "refId": "A",
-          "expr": "irate(wmi_system_context_switches_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
+          "expr": "irate(windows_system_context_switches_total{job=~\"$job\",instance=~\"$instance\"}[5m])"
         },
         {
           "format": "time_series",
@@ -3351,7 +4213,7 @@
           "legendFormat": "异常分发/s",
           "instant": false,
           "refId": "B",
-          "expr": "irate(wmi_system_exception_dispatches_total{job=~\"$job\",instance=~\"$instance\"}[5m])",
+          "expr": "irate(windows_system_exception_dispatches_total{job=~\"$job\",instance=~\"$instance\"}[5m])",
           "yaxis": 2
         }
       ],
@@ -3403,120 +4265,6 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "每秒硬件中断与 DPC（延迟过程调用）次数。过高通常指向网卡/驱动问题（新增面板）。",
-      "editable": true,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "grid": {},
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 55
-      },
-      "hiddenSeries": false,
-      "id": 138,
-      "isNew": true,
-      "legend": {
-        "avg": true,
-        "current": true,
-        "hideEmpty": true,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "total": false,
-        "values": true,
-        "alignAsTable": true,
-        "sort": "max",
-        "sortDesc": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null as zero",
-      "percentage": false,
-      "pluginVersion": "7.1.4",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "format": "time_series",
-          "interval": "",
-          "legendFormat": "中断/s",
-          "instant": false,
-          "refId": "A",
-          "expr": "sum(irate(wmi_cpu_interrupts_total{job=~\"$job\",instance=~\"$instance\"}[5m]))"
-        },
-        {
-          "format": "time_series",
-          "interval": "",
-          "legendFormat": "DPC/s",
-          "instant": false,
-          "refId": "B",
-          "expr": "sum(irate(wmi_cpu_dpcs_total{job=~\"$job\",instance=~\"$instance\"}[5m]))"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "CPU中断与DPC",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "pps",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
       "description": "各采集器状态（1=成功，0=失败），快速定位某类指标缺失的采集侧原因。兼容 windows_exporter_collector_success 与 wmi_exporter 0.7 的 wmi_exporter_collector_success。",
       "editable": true,
       "error": false,
@@ -3530,10 +4278,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 55
+        "x": 12,
+        "y": 67,
+        "w": 12,
+        "h": 6
       },
       "hiddenSeries": false,
       "id": 139,
@@ -3572,7 +4320,7 @@
           "legendFormat": "{{collector}}",
           "instant": false,
           "refId": "A",
-          "expr": "wmi_exporter_collector_success{job=~\"$job\",instance=~\"$instance\"}"
+          "expr": "windows_exporter_collector_success{job=~\"$job\",instance=~\"$instance\"}"
         }
       ],
       "thresholds": [],
@@ -3631,19 +4379,19 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": null,
-          "value": null
+          "selected": true,
+          "text": "consul-windows_exporter",
+          "value": "consul-windows_exporter"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(wmi_system_system_up_time, job)",
+        "definition": "label_values(windows_cs_hostname{job=~\".*windows_exporter.*\"}, job)",
         "hide": 2,
         "includeAll": false,
         "label": "job",
         "multi": false,
         "name": "job",
         "options": [],
-        "query": "label_values(wmi_system_system_up_time, job)",
+        "query": "label_values(windows_cs_hostname{job=~\".*windows_exporter.*\"}, job)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -3662,14 +4410,14 @@
           "value": null
         },
         "datasource": "Prometheus",
-        "definition": "label_values(wmi_cs_hostname{job=~\"$job\"}, hostname)",
+        "definition": "label_values(windows_cs_hostname{job=~\"$job\"}, hostname)",
         "hide": 2,
         "includeAll": true,
         "label": "hostname",
         "multi": false,
         "name": "hostname",
         "options": [],
-        "query": "label_values(wmi_cs_hostname{job=~\"$job\"}, hostname)",
+        "query": "label_values(windows_cs_hostname{job=~\"$job\"}, hostname)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -3688,14 +4436,14 @@
           "value": null
         },
         "datasource": "Prometheus",
-        "definition": "label_values(wmi_system_system_up_time{job=~\"$job\"}, instance)",
+        "definition": "label_values(windows_os_info{job=~\"$job\"}, instance)",
         "hide": 0,
         "includeAll": false,
         "label": "instance",
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(wmi_system_system_up_time{job=~\"$job\"}, instance)",
+        "query": "label_values(windows_os_info{job=~\"$job\"}, instance)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -3714,14 +4462,14 @@
           "value": null
         },
         "datasource": "Prometheus",
-        "definition": "label_values(wmi_cs_hostname{job=~\"$job\",instance=~\"$instance\"}, hostname)",
+        "definition": "label_values(windows_cs_hostname{job=~\"$job\",instance=~\"$instance\"}, hostname)",
         "hide": 2,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "show_hostname",
         "options": [],
-        "query": "label_values(wmi_cs_hostname{job=~\"$job\",instance=~\"$instance\"}, hostname)",
+        "query": "label_values(windows_cs_hostname{job=~\"$job\",instance=~\"$instance\"}, hostname)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -3763,7 +4511,7 @@
     ]
   },
   "timezone": "",
-  "title": "Windows wmi_exporter (Optimized)",
-  "uid": "win-wmi-opt-9182",
+  "title": "Windows (Optimized)",
+  "uid": "win-opt-9182",
   "version": 2
 }

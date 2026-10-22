@@ -1,0 +1,874 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_info{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "节点总数",
+      "type": "stat",
+      "description": "集群内节点总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",condition=\"Ready\",status=\"true\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "节点就绪",
+      "type": "stat",
+      "description": "Ready=True 的节点数量"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_spec_unschedulable{kubernetes_cluster=~\"$kubernetes_cluster\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "不可调度节点",
+      "type": "stat",
+      "description": "不可调度（cordon/污点导致）的节点数，大于0标红"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",condition=\"MemoryPressure\",status=\"true\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "内存压力节点",
+      "type": "stat",
+      "description": "真实处于 MemoryPressure 状态（条件值==1）的节点数，大于0标红；必须加 ==1 值过滤，否则每个节点都有一条 status=true=0 的序列会被误计数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "就绪"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存压力"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "磁盘压力"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PID压力"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "不可调度"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 10,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",condition=\"Ready\",status=\"true\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "就绪",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",condition=\"MemoryPressure\",status=\"true\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "内存压力",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",condition=\"DiskPressure\",status=\"true\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "磁盘压力",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",condition=\"PIDPressure\",status=\"true\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "PID压力",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_spec_unschedulable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "不可调度",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_node) (kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Pod数",
+          "refId": "F"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_node": "节点",
+              "Value #A": "就绪",
+              "Value #B": "内存压力",
+              "Value #C": "磁盘压力",
+              "Value #D": "PID压力",
+              "Value #E": "不可调度",
+              "Value #F": "Pod数"
+            }
+          }
+        }
+      ],
+      "title": "节点状态总览",
+      "type": "table",
+      "description": "每节点 Ready/内存压力/磁盘压力/PID压力/不可调度/Pod数；就绪列 0 或空=红，各压力与不可调度列 1=红。注意：联邦链路下原生 node 标签被 Consul 目标标签顶替改名为 exported_node（样本上的 node 标签恒为 test-prometheus 所在主机名，不是 K8s 节点名），节点过滤与分组必须使用 exported_node"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 11,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_node) (kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"cpu\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "CPU请求(核)",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_allocatable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"cpu\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "CPU可分配(核)",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_node) (kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"memory\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "内存请求",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_allocatable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"memory\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "内存可分配",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_node) (kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Pod数",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node) (kube_node_status_allocatable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"pods\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Pod可配额",
+          "refId": "F"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_node": "节点",
+              "Value #A": "CPU请求(核)",
+              "Value #B": "CPU可分配(核)",
+              "Value #C": "内存请求",
+              "Value #D": "内存可分配",
+              "Value #E": "Pod数",
+              "Value #F": "Pod可配额"
+            }
+          }
+        }
+      ],
+      "title": "节点资源分配（requests vs 可分配）",
+      "type": "table",
+      "description": "每节点 CPU/内存 requests 与可分配、Pod 数与可配额对比，用于容量规划与超卖分析"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_node) (kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"cpu\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{exported_node}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各节点 CPU requests 趋势(核)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "各节点 Pod CPU requests 合计随时间变化（核）"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 7,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_node) (kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\",resource=\"memory\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{exported_node}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各节点内存 requests 趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "各节点 Pod 内存 requests 合计随时间变化"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 12,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_node, key, value, effect) (kube_node_spec_taint{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"$node\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{key}}={{value}}:{{effect}}",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_node": "节点",
+              "key": "Key",
+              "value": "Value",
+              "effect": "效果",
+              "Value #A": "污点"
+            }
+          }
+        }
+      ],
+      "title": "节点污点",
+      "type": "table",
+      "description": "各节点污点（Key/Value/效果），NoSchedule/NoExecute 会影响调度"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": [
+    "kubernetes",
+    "kube-state-metrics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_node_info, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(kube_node_info, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_node_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_node)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "节点",
+        "multi": true,
+        "name": "node",
+        "options": [],
+        "query": "label_values(kube_node_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_node)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "KSM 02 节点",
+  "uid": "ksm-nodes",
+  "version": 2
+}

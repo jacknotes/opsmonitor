@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "基于原版 Linux 面板（gnetId 9276）的优化版正式面板，指标基于 node_exporter 1.8.2（192.168.13.176:9100）实际输出一次性校准，适用于 Grafana 7.1.4。「各分区可用空间」面板保留自原版（直观表格：分区/已用/总空间/使用率变色）。查询口径：速率统一用 rate、磁盘过滤 loop/ram/fd/sr 虚拟设备、网卡过滤 lo 回环口、修正内存/CPU 使用率公式；新增 CPU 分模式、上下文切换与中断、进程状态、Swap 换入换出、inode 使用率、网络丢包与错误、TCP 新建与重传、NTP 时钟同步、文件句柄等面板。布局：总览区 Server Resource 总表固定第一行，其后为指标卡片行与三个 Gauge 使用率一行；曲线面板每行 4 个；图例为表格形式（Max/Avg/Current，可点击列头排序）。打开性能优化：时序查询强制最小步长 1m、总表 CPU 列 instant、图表查询结果缓存 60s。",
+  "description": "指标基于 node_exporter 1.8.2 实际输出校准，适用于 Grafana 7.1.4。「各分区可用空间」面板为直观表格（分区/已用/总空间/使用率变色）。查询口径：速率统一用 rate、磁盘过滤 loop/ram/fd/sr 虚拟设备、网卡过滤 lo 回环口、修正内存/CPU 使用率公式；含 CPU 分模式、上下文切换与中断、进程状态、Swap 换入换出、inode 使用率、网络丢包与错误、TCP 新建与重传、NTP 时钟同步、文件句柄等面板。布局：总览区 Server Resource 总表固定第一行，其后为指标卡片行与三个 Gauge 使用率一行；曲线面板每行 4 个；图例为表格形式（Max/Avg/Current，可点击列头排序）。打开性能优化：时序查询强制最小步长 1m、总表 CPU 列 instant、图表查询结果缓存 60s。",
   "editable": true,
   "gnetId": 9276,
   "graphTooltip": 1,
@@ -2042,7 +2042,7 @@
     {
       "collapsed": false,
       "datasource": null,
-      "description": "分区空间、使用率与 inode（仅统计 ext4/xfs 本地文件系统）；「各分区可用空间」表格保留自原版。",
+      "description": "分区空间、使用率与 inode（仅统计 ext4/xfs 本地文件系统）。",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -2388,7 +2388,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "decimals": null,
-      "description": "网卡下行带宽（rate[5m] × 8，单位 bits/s），已过滤 lo、veth、docker、bridge、tun/tap、CNI 等虚拟接口。原版使用 irate[5m] 语义错误（irate 只取区间内最后两个样本），已改为 rate。",
+      "description": "网卡下行带宽（rate[5m] × 8，单位 bits/s），已过滤 lo、veth、docker、bridge、tun/tap、CNI 等虚拟接口。",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -3307,7 +3307,7 @@
       ],
       "datasource": "Prometheus",
       "decimals": 1,
-      "description": "内存使用率 = (MemTotal - MemAvailable) / MemTotal × 100，优先使用 MemAvailable（包含可回收缓存），老内核无 MemAvailable 时回退到 Buffers+Cached+Free 估算。Gauge 阈值与原版一致：80% 黄、90% 红。",
+      "description": "内存使用率 = (MemTotal - MemAvailable) / MemTotal × 100，优先使用 MemAvailable（包含可回收缓存），老内核无 MemAvailable 时回退到 Buffers+Cached+Free 估算。Gauge 阈值：80% 黄、90% 红。",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -3400,7 +3400,7 @@
       ],
       "datasource": "Prometheus",
       "decimals": 1,
-      "description": "近 1 分钟 CPU 总使用率（非 idle 模式占比，irate[1m]），带迷你趋势线。Gauge 阈值与原版一致：50% 黄、80% 红。",
+      "description": "近 1 分钟 CPU 总使用率（非 idle 模式占比，irate[1m]），带迷你趋势线。Gauge 阈值：50% 黄、80% 红。",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -3493,7 +3493,7 @@
       ],
       "datasource": "Prometheus",
       "decimals": 1,
-      "description": "最大分区（$maxmount，自动取所选主机 ext4/xfs 中容量最大的挂载点）的使用率，带迷你趋势线。Gauge 阈值与原版一致：70% 黄、90% 红。",
+      "description": "最大分区（$maxmount，自动取所选主机 ext4/xfs 中容量最大的挂载点）的使用率，带迷你趋势线。Gauge 阈值：70% 黄、90% 红。",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -3759,7 +3759,7 @@
       "transform": "table",
       "type": "table-old",
       "id": 503,
-      "description": "各分区（ext4/xfs）空间明细表：分区、已用空间、总空间、使用率（70%/90% 阈值变色）、文件系统类型。此面板保留自原版（直观表格）。"
+      "description": "各分区（ext4/xfs）空间明细表：分区、已用空间、总空间、使用率（70%/90% 阈值变色）、文件系统类型。"
     },
     {
       "aliasColors": {},
@@ -4139,8 +4139,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.236:9100",
-          "value": "192.168.13.236:9100"
+          "text": "192.168.xxx:9100",
+          "value": "192.168.xxx:9100"
         },
         "datasource": "Prometheus",
         "definition": "",

@@ -1,0 +1,789 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "当前集群+命名空间下 Rollout CRD 总数（rollout_info 计数）",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(rollout_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Rollout 总数",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "发布已完成且健康（phase=Completed）的 Rollout 数量",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Completed\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "已完成",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "正在执行金丝雀/蓝绿发布（phase=Progressing）的 Rollout 数量，>0 黄色提示",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Progressing\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "发布中",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "处于暂停等待（phase=Paused，如人工暂停/分析暂停）的 Rollout 数量，>0 黄色提示",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Paused\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "已暂停",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "发布出错（phase=Error，如镜像拉取失败/健康检查未过）的 Rollout 数量，>0 标红",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Error\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "错误(Error)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "发布被中止(Abort)或进度超时(Timeout)的 Rollout 数量，>0 标红，需要人工介入",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=~\"Abort|Timeout\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "中止/超时(Abort/Timeout)",
+      "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "6 类 phase（Abort/Completed/Error/Paused/Progressing/Timeout）的 Rollout 数量随时间变化，堆叠展示；Observing 阶段可在此看发布波次",
+      "fill": 8,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "total": false,
+        "alignAsTable": true,
+        "values": true,
+        "min": true,
+        "max": true,
+        "current": true,
+        "avg": false,
+        "rightSide": false,
+        "show": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (phase) (rollout_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{phase}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "发布状态趋势（按 Phase 堆叠）",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "from": "",
+              "id": 1,
+              "text": "Completed",
+              "to": "",
+              "type": 1,
+              "value": "Completed"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "阶段"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "Completed",
+                    "to": "",
+                    "type": 1,
+                    "value": "Completed",
+                    "color": "green"
+                  },
+                  {
+                    "from": "",
+                    "id": 2,
+                    "text": "Progressing",
+                    "to": "",
+                    "type": 1,
+                    "value": "Progressing",
+                    "color": "yellow"
+                  },
+                  {
+                    "from": "",
+                    "id": 3,
+                    "text": "Paused",
+                    "to": "",
+                    "type": 1,
+                    "value": "Paused",
+                    "color": "yellow"
+                  },
+                  {
+                    "from": "",
+                    "id": 4,
+                    "text": "Error",
+                    "to": "",
+                    "type": 1,
+                    "value": "Error",
+                    "color": "red"
+                  },
+                  {
+                    "from": "",
+                    "id": 5,
+                    "text": "Abort",
+                    "to": "",
+                    "type": 1,
+                    "value": "Abort",
+                    "color": "red"
+                  },
+                  {
+                    "from": "",
+                    "id": 6,
+                    "text": "Timeout",
+                    "to": "",
+                    "type": 1,
+                    "value": "Timeout",
+                    "color": "red"
+                  }
+                ]
+              },
+              {
+                "value": "color-background",
+                "id": "custom.displayMode"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "不可用副本"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "color-background",
+                "id": "custom.displayMode"
+              }
+            ]
+          }
+        ]
+      },
+      "id": 11,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, name, phase, strategy, traffic_router) (rollout_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "-",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, name) (rollout_info_replicas_desired{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "期望副本",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, name) (rollout_info_replicas_available{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "可用副本",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, name) (rollout_info_replicas_unavailable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "不可用副本",
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "name": "Rollout",
+              "phase": "阶段",
+              "strategy": "策略",
+              "traffic_router": "流量路由",
+              "Value #B": "期望副本",
+              "Value #C": "可用副本",
+              "Value #D": "不可用副本"
+            }
+          }
+        }
+      ],
+      "type": "table",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "title": "Rollout 状态明细",
+      "description": "每个 Rollout 的阶段/策略/流量路由与期望/可用/不可用副本；阶段列 Completed 绿、Progressing/Paused 黄、Error/Abort/Timeout 红；不可用副本>0 标红"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "近6小时各 Rollout 事件增量折线（rollout_events_total 6小时滚动增量 Top20），与左侧发布状态趋势同行对照：事件突增通常对应发布或异常活动",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "total": false,
+        "alignAsTable": true,
+        "values": true,
+        "min": true,
+        "max": true,
+        "current": true,
+        "avg": false,
+        "rightSide": false,
+        "show": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(20, sum by (exported_namespace, name) (increase(rollout_events_total{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"}[6h])))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "近 6 小时事件数 Top 20",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": [
+    "kubernetes",
+    "argo-rollouts"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(rollout_info, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(rollout_info, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(rollout_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "命名空间",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(rollout_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "Argo Rollouts 发布状态",
+  "uid": "argo-rollouts",
+  "version": 2
+}

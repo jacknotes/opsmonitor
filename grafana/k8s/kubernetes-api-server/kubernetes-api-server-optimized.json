@@ -1,0 +1,1077 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "当前在线的 kube-apiserver 实例数（up==1 计数，or vector(0) 兜底）；0 或低于预期副本数说明 apiserver 掉线，集群将无法进行任何管理操作",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(up{kubernetes_cluster=~\"$kubernetes_cluster\",job=~\".*apiserver.*\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "API Server 在线",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "kube-apiserver 每秒接收的请求总量（apiserver_request_total 2m 速率），反映控制面整体请求压力",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(apiserver_request_total{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m]))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "请求 QPS",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "apiserver 返回 5xx 服务端错误的请求占比（2m 速率）；超过 1% 黄色、5% 红色，5xx 持续出现需结合 apiserver/etcd 日志排查",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(rate(apiserver_request_total{kubernetes_cluster=~\"$kubernetes_cluster\",code=~\"5..\"}[2m])) / sum(rate(apiserver_request_total{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m]))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "5xx 错误率",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "读写请求（排除 WATCH/CONNECT 长连接）的 P99 处理延迟（毫秒）；超过 500ms 黄色、2s 红色，通常由 etcd 压力或 admission webhook 变慢引起",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 2000 }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",verb!~\"CONNECT|WATCH\"}[2m])) by (le)) * 1000",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "请求 P99 延迟",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "当前正在处理中的请求数（apiserver_current_inflight_requests）；接近 max_inflight（只读 400/变更 800）时 apiserver 开始返回 429 限流",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 400 },
+              { "color": "red", "value": 800 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(apiserver_current_inflight_requests{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Inflight 处理中请求",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "客户端证书剩余有效期的 5% 分位（按认证请求观测，即最短的一批证书）；低于 30 天黄色、7 天红色，提示尽快轮换 kubeconfig/组件证书",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 7 },
+              { "color": "green", "value": 30 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.05, sum(rate(apiserver_client_certificate_expiration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[5m])) by (le)) / 86400",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "证书剩余有效期（天）",
+      "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "GET/LIST/WATCH/POST/PUT/DELETE 等动词的请求速率；LIST/GET 突增通常来自控制器全量同步或巡检工具，WATCH 属长连接不计入延迟面板",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
+      "hiddenSeries": false,
+      "id": 7,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(apiserver_request_total{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (verb)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{verb}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "请求速率（按动词）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "4xx/5xx 请求速率堆叠（按状态码分线）；404 多为资源删除后的残留请求，403 为权限不足，429 为 APF 限流触发，5xx 持续出现需查 apiserver 日志",
+      "fill": 7,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
+      "hiddenSeries": false,
+      "id": 8,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(apiserver_request_total{kubernetes_cluster=~\"$kubernetes_cluster\",code=~\"4..|5..\"}[2m])) by (code)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{code}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "请求错误分布（按状态码）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "读写请求（排除 WATCH/CONNECT）处理延迟分位曲线（P50/P90/P95，毫秒）；P95 升高通常是 etcd 变慢、大量 LIST 大对象或 admission webhook 阻塞",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 11 },
+      "hiddenSeries": false,
+      "id": 9,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(apiserver_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",verb!~\"CONNECT|WATCH\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(apiserver_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",verb!~\"CONNECT|WATCH\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(apiserver_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",verb!~\"CONNECT|WATCH\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P95",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "请求延迟分位（P50/P90/P95）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "apiserver 视角的 etcd 读写往返延迟分位（P50/P90/P95，毫秒）；该值升高说明 apiserver 到 etcd 网络抖动或 etcd 本身压力大（磁盘慢、DB 大、compaction 卡顿）",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(etcd_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(etcd_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(etcd_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P95",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "etcd 请求延迟分位（P50/P90/P95）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "认证结果速率堆叠（success/failure/error）；failure 持续出现说明有客户端在用过期证书或失效 token 反复重试，error 为认证器内部错误",
+      "fill": 7,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 18 },
+      "hiddenSeries": false,
+      "id": 11,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(authentication_attempts{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (result)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "认证请求速率（按结果）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "认证环节耗时分位（P50/P90/P95，毫秒）；认证延迟高会拖慢所有经过的请求，常见于 webhook 认证服务（如自建 token 验证）响应慢",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 18 },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(authentication_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(authentication_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(authentication_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P95",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "认证延迟分位（P50/P90/P95）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "apiserver 内部 workqueue 的排队等待延迟分位（P50/P90/P95，毫秒，全部队列汇总）；排队延迟高说明 apiserver 事件处理能力饱和",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 25 },
+      "hiddenSeries": false,
+      "id": 13,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(workqueue_queue_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P95",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "workqueue 等待延迟分位（P50/P90/P95）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "apiserver 内部 workqueue 事件实际处理耗时分位（P50/P90/P95，毫秒，全部队列汇总）；处理慢通常与 admission webhook、存储层写延迟相关",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 25 },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(workqueue_work_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P95",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "workqueue 处理延迟分位（P50/P90/P95）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "正在处理中（inflight）与排队等待（inqueue）的请求趋势；inflight 接近上限或排队持续增长说明控制面过载，将伴随 429 限流出现",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 32 },
+      "hiddenSeries": false,
+      "id": 15,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(apiserver_current_inflight_requests{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "处理中",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(apiserver_current_inqueue_requests{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "排队等待",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Inflight / 排队请求趋势",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "short", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Watch 长连接数量 Top10（按 group/kind 汇总）；某类资源 Watch 数突增说明有新控制器或巡检工具在长连接跟踪，Watch 过多会消耗 apiserver 连接与内存",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 32 },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, sum by (kind, group) (apiserver_registered_watchers{kubernetes_cluster=~\"$kubernetes_cluster\"}))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{kind}}/{{group}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Watch 连接数 Top10（按资源）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "short", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "etcd 中各类 API 对象数量 Top10（多 apiserver 取最大值去重）；对象数量暴涨会拖慢 LIST 请求与 etcd 性能，replicasets/pods 通常是主力",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 39 },
+      "hiddenSeries": false,
+      "id": 17,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (resource) (apiserver_storage_objects{kubernetes_cluster=~\"$kubernetes_cluster\"}))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{resource}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "存储对象数 Top10（按资源）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "short", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Admission Webhook 拒绝请求速率 Top5（按 webhook 名汇总）；持续非零说明有策略在拦截请求（资源配额、Istio 校验等）。注：拒绝计数器只在首次发生拒绝后才生成序列，从未发生拒绝时显示 No data 属正常（表示无任何 webhook 拦截）",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 39 },
+      "hiddenSeries": false,
+      "id": 18,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(5, sum by (name) (rate(apiserver_admission_webhook_rejection_count{kubernetes_cluster=~\"$kubernetes_cluster\"}[2m])))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Webhook 拒绝速率 Top5",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": ["kubernetes", "apiserver"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*kubernetes.*-apiserver.*\"}, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(up{job=~\".*kubernetes.*-apiserver.*\"}, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "title": "Kubernetes API Server 监控",
+  "uid": "kube-apiserver-optimized",
+  "version": 1
+}

@@ -1,0 +1,2941 @@
+{
+  "gnetId": null,
+  "tags": [
+    "kubernetes",
+    "pods"
+  ],
+  "id": null,
+  "panels": [
+    {
+      "panels": [],
+      "id": 101,
+      "type": "row",
+      "gridPos": {
+        "y": 0,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "节点概览",
+      "collapsed": false
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "节点 CPU 核数",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(node_cpu_seconds_total{job=~\"$kubernetes_cluster.*-node$\",kubernetes_io_hostname=~\"^$Node$\",mode=\"idle\"}) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 0,
+        "w": 3,
+        "h": 5
+      },
+      "id": 1,
+      "description": "所选节点的 CPU 核数（按 node_exporter 的 cpu 维度计数，等于物理核或虚拟核数）；选择 All 时为所有节点核数之和",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "节点内存总量",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(node_memory_MemTotal_bytes{job=~\"$kubernetes_cluster.*-node$\",kubernetes_io_hostname=~\"^$Node$\"}) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 3,
+        "w": 3,
+        "h": 5
+      },
+      "id": 2,
+      "description": "所选节点的内存总量（node_memory_MemTotal_bytes 求和）；选择 All 时为所有节点内存总和",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "Pod CPU 使用率",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(container_cpu_usage_seconds_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}[2m])) / count(node_cpu_seconds_total{job=~\"$kubernetes_cluster.*-node$\",kubernetes_io_hostname=~\"^$Node$\",mode=\"idle\"})) * 100",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              },
+              {
+                "value": 85,
+                "color": "rgba(237, 129, 40, 0.89)"
+              },
+              {
+                "value": 95,
+                "color": "#C4162A"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 6,
+        "w": 3,
+        "h": 5
+      },
+      "id": 3,
+      "description": "所选节点上全部 Pod 的 CPU 使用率：容器 CPU 使用核数之和 ÷ 节点 CPU 核数；不包含 pause 容器，超 85% 橙 / 95% 红",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "Pod 内存使用率",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(container_memory_working_set_bytes{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}) / sum(node_memory_MemTotal_bytes{job=~\"$kubernetes_cluster.*-node$\",kubernetes_io_hostname=~\"^$Node$\"}) * 100",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              },
+              {
+                "value": 85,
+                "color": "rgba(237, 129, 40, 0.89)"
+              },
+              {
+                "value": 95,
+                "color": "#C4162A"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 9,
+        "w": 3,
+        "h": 5
+      },
+      "id": 4,
+      "description": "所选节点上全部 Pod 的内存使用率：容器 working_set 之和 ÷ 节点内存总量；working_set 为实际占用，超 85% 橙 / 95% 红",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "节点 Pod 总数",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 12,
+        "w": 3,
+        "h": 5
+      },
+      "id": 5,
+      "description": "所选节点上的 Pod 对象总数（kube-state-metrics 的 kube_pod_info 按 exported_node 统计，含 hostNetwork Pod 与已完成/失败的 Job Pod）；与下方「Pod 状态分布」结合可判断是否存在大量已结束但未清理的 Pod",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "未就绪 Pod 数",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kube_pod_status_ready{kubernetes_cluster=~\"$kubernetes_cluster\",condition=\"false\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"} and on (exported_namespace, pod) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=\"Running\"} == 1)) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              },
+              {
+                "value": 1,
+                "color": "#C4162A"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 15,
+        "w": 3,
+        "h": 5
+      },
+      "id": 6,
+      "description": "所选节点上处于 Running 但未就绪的 Pod 数量（kube_pod_status_ready condition=false 且 Pod 阶段为 Running）；大于 0 时红色，通常表示探针未通过、镜像拉取缓慢或应用尚未初始化完成",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "CPU Requests 合计",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 18,
+        "w": 3,
+        "h": 5
+      },
+      "id": 7,
+      "description": "所选节点上全部容器声明的 CPU Requests 之和，即调度器为该节点预留的 CPU 核数；与 Pod CPU 使用率对比可判断预留是否合理",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "pluginVersion": "7.1.4",
+      "title": "内存 Requests 合计",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}) or vector(0)",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [],
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#37872D"
+              }
+            ]
+          },
+          "colorMode": "value",
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 21,
+        "w": 3,
+        "h": 5
+      },
+      "id": 8,
+      "description": "所选节点上全部容器声明的内存 Requests 之和，即调度器为该节点预留的内存；与 Pod 内存使用率对比可判断预留是否合理",
+      "datasource": "Prometheus",
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "fields": "",
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 6,
+        "x": 0,
+        "w": 12,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点全部 Pod 的接收/发送流量合计（eth0 接口）；用于判断节点进出口带宽是否接近上限，单个 Pod 明细见下方 Top10",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "速率",
+          "show": true,
+          "logBase": 1,
+          "format": "Bps",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 21,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "接收",
+          "expr": "sum(rate(container_network_receive_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\"}[2m]))",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "legendFormat": "发送",
+          "expr": "sum(rate(container_network_transmit_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\"}[2m]))",
+          "format": "time_series",
+          "refId": "B",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 网络总吞吐",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 6,
+        "x": 12,
+        "w": 12,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点全部 Pod 的磁盘读写速率合计；仅统计物理盘，排除 LVM/device-mapper 重复计数，用于判断节点磁盘 IO 压力",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "速率",
+          "show": true,
+          "logBase": 1,
+          "format": "Bps",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 22,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "读取",
+          "expr": "sum(rate(container_fs_reads_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m]))",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "legendFormat": "写入",
+          "expr": "sum(rate(container_fs_writes_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m]))",
+          "format": "time_series",
+          "refId": "B",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 磁盘总读写",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "panels": [],
+      "id": 102,
+      "type": "row",
+      "gridPos": {
+        "y": 13,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "指定 Pod 详情",
+      "collapsed": false
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 14,
+        "x": 0,
+        "w": 6,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "在上方「命名空间 / 详情 Pod」下拉选择后，展示该 Pod 所有容器的 CPU 使用量（核）、Requests 与 Limits；用于核查未进入 Top10 的个别 Pod，使用量持续接近 Limits 时会被 CFS 限流",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "max": null,
+          "label": "核",
+          "logBase": 1,
+          "show": true,
+          "min": 0,
+          "format": "short"
+        },
+        {
+          "max": null,
+          "label": null,
+          "logBase": 1,
+          "show": false,
+          "min": null,
+          "format": "short"
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 27,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "使用量",
+          "refId": "A",
+          "format": "time_series",
+          "expr": "sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\",namespace=~\"$namespace\",pod=~\"$pod\"}[2m]))"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "Requests",
+          "refId": "B",
+          "format": "time_series",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\",exported_namespace=~\"$namespace\",pod=~\"$pod\"})"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "Limits",
+          "refId": "C",
+          "format": "time_series",
+          "expr": "sum(kube_pod_container_resource_limits{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\",exported_namespace=~\"$namespace\",pod=~\"$pod\"})"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "指定 Pod CPU（使用 / Requests / Limits）",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 14,
+        "x": 6,
+        "w": 6,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "展示所选 Pod 所有容器的内存 working_set、Requests 与 Limits；working_set 为实际占用，持续接近 Limits 时存在 OOMKilled 风险",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "max": null,
+          "label": "内存",
+          "logBase": 1,
+          "show": true,
+          "min": 0,
+          "format": "bytes"
+        },
+        {
+          "max": null,
+          "label": null,
+          "logBase": 1,
+          "show": false,
+          "min": null,
+          "format": "short"
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 28,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "使用量",
+          "refId": "A",
+          "format": "time_series",
+          "expr": "sum by (namespace, pod) (container_memory_working_set_bytes{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\",namespace=~\"$namespace\",pod=~\"$pod\"})"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "Requests",
+          "refId": "B",
+          "format": "time_series",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\",exported_namespace=~\"$namespace\",pod=~\"$pod\"})"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "Limits",
+          "refId": "C",
+          "format": "time_series",
+          "expr": "sum(kube_pod_container_resource_limits{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\",exported_namespace=~\"$namespace\",pod=~\"$pod\"})"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "指定 Pod 内存（使用 / Requests / Limits）",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 14,
+        "x": 12,
+        "w": 6,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "展示所选 Pod 的 eth0 接收/发送速率；用于排查未进入 Top10 的个别业务 Pod 流量异常、连接重试或日志外发",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "max": null,
+          "label": "速率",
+          "logBase": 1,
+          "show": true,
+          "min": 0,
+          "format": "Bps"
+        },
+        {
+          "max": null,
+          "label": null,
+          "logBase": 1,
+          "show": false,
+          "min": null,
+          "format": "short"
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 29,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "接收",
+          "refId": "A",
+          "format": "time_series",
+          "expr": "sum(rate(container_network_receive_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\",namespace=~\"$namespace\",pod=~\"$pod\"}[2m]))"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "发送",
+          "refId": "B",
+          "format": "time_series",
+          "expr": "sum(rate(container_network_transmit_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\",namespace=~\"$namespace\",pod=~\"$pod\"}[2m]))"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "指定 Pod 网络（接收 / 发送）",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 14,
+        "x": 18,
+        "w": 6,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "展示所选 Pod 所有容器的磁盘读写速率；仅统计物理盘，排除 LVM/device-mapper 重复计数，用于定位个别 Pod 的 IO 抖动",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "max": null,
+          "label": "速率",
+          "logBase": 1,
+          "show": true,
+          "min": 0,
+          "format": "Bps"
+        },
+        {
+          "max": null,
+          "label": null,
+          "logBase": 1,
+          "show": false,
+          "min": null,
+          "format": "short"
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 30,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "读取",
+          "refId": "A",
+          "format": "time_series",
+          "expr": "sum(rate(container_fs_reads_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\",namespace=~\"$namespace\",pod=~\"$pod\"}[2m]))"
+        },
+        {
+          "instant": false,
+          "datasource": "Prometheus",
+          "legendFormat": "写入",
+          "refId": "B",
+          "format": "time_series",
+          "expr": "sum(rate(container_fs_writes_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\",namespace=~\"$namespace\",pod=~\"$pod\"}[2m]))"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "指定 Pod 磁盘（读 / 写）",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "panels": [],
+      "id": 103,
+      "type": "row",
+      "gridPos": {
+        "y": 21,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "运行状态",
+      "collapsed": false
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 22,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点 Pod 按生命周期阶段的分布（Running/Pending/Succeeded/Failed/Unknown）；Pending 持续升高通常表示资源不足或调度失败，Failed 表示容器无法正常启动",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "Pod 数",
+          "show": true,
+          "logBase": 1,
+          "format": "short",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 23,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "{{phase}}",
+          "expr": "sum by (phase) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=~\"Running|Pending|Succeeded|Failed|Unknown\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"})",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 状态分布",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 22,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "近 1 小时内重启次数最多的 10 个 Pod（容器重启计数增量）；频繁重启通常由 OOM、健康检查失败、镜像拉取失败或应用崩溃引起",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "重启次数",
+          "show": true,
+          "logBase": 1,
+          "format": "short",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 24,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "{{exported_namespace}}/{{pod}}",
+          "expr": "topk(10, (sum by (pod, exported_namespace) (increase(kube_pod_container_status_restarts_total{kubernetes_cluster=~\"$kubernetes_cluster\"}[1h])) and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}))",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 重启次数 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 22,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点 CPU 被 CFS 限流比例最高的 10 个容器（throttled periods ÷ 总 periods）；比例越高说明 CPU Limit 过低或负载突增，会直接导致请求变慢；无数据表示当前没有任何容器被限流",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "限流比例",
+          "show": true,
+          "logBase": 1,
+          "format": "percent",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 25,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}",
+          "expr": "topk(10, ((sum by (namespace, pod, container) (rate(container_cpu_cfs_throttled_periods_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}[2m])) / sum by (namespace, pod, container) (rate(container_cpu_cfs_periods_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}[2m]))) * 100) > 0)",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器 CPU 限流 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "panels": [],
+      "id": 104,
+      "type": "row",
+      "gridPos": {
+        "y": 29,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "资源分配与限流",
+      "collapsed": false
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 30,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点全部 Pod 的 CPU Requests 与 Limits 合计；Requests 决定调度预留，Limits 是可使用的硬上限，两者差距过大说明资源配置偏保守或超卖",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "核",
+          "format": "short",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 9,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"})",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "Requests"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(kube_pod_container_resource_limits{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"})",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "Limits"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod CPU Requests / Limits",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 30,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点全部 Pod 的内存 Requests 与 Limits 合计；Requests 用于调度预留，Limits 为容器可使用的内存上限，超出 Limits 会被 OOMKilled",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "内存",
+          "format": "bytes",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 10,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"})",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "Requests"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(kube_pod_container_resource_limits{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"})",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "Limits"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 内存 Requests / Limits",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 30,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点 Pod 的 Requests 总量占节点可分配资源的比例（CPU/内存，分母为所选节点可分配总量，含被 cordon 节点的容量）；接近 100% 说明剩余可调度资源不足，需扩容或下调 Requests",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "label": "占比",
+          "show": true,
+          "logBase": 1,
+          "format": "percent",
+          "min": 0,
+          "max": null
+        },
+        {
+          "label": null,
+          "show": false,
+          "logBase": 1,
+          "format": "short",
+          "min": null,
+          "max": null
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 26,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "CPU",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}) / sum(kube_node_status_allocatable{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"cpu\",exported_node=~\"^$Node$\"}) * 100",
+          "format": "time_series",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "legendFormat": "内存",
+          "expr": "sum(kube_pod_container_resource_requests{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\"} and on (exported_namespace, pod) kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}) / sum(kube_node_status_allocatable{kubernetes_cluster=~\"$kubernetes_cluster\",resource=\"memory\",exported_node=~\"^$Node$\"}) * 100",
+          "format": "time_series",
+          "refId": "B",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Requests 水位（CPU/内存）",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "panels": [],
+      "id": 105,
+      "type": "row",
+      "gridPos": {
+        "y": 37,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "Pod 级排行（Top10）",
+      "collapsed": false
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 38,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点 CPU 使用核数最高的 10 个 Pod（按 Pod 汇总容器 CPU 速率，不含 pause 容器）；图例显示所选时间窗内的 Min/Max/Current，Max 即窗口内峰值",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "核",
+          "format": "short",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 11,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod CPU 使用 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 38,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点内存占用最高的 10 个 Pod（按 Pod 汇总容器 working_set）；working_set 包含不可回收的缓存部分，是判断 OOM 风险的准确口径",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "内存",
+          "format": "bytes",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 12,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (container_memory_working_set_bytes{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 内存使用 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 38,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点接收流量速率最高的 10 个 Pod（容器网络 eth0 接口接收字节速率）；不含 localhost 与隧道接口，避免重复计算",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "接收速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 13,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (rate(container_network_receive_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 网络接收 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 45,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点发送流量速率最高的 10 个 Pod（容器网络 eth0 接口发送字节速率）；发送突增常见于日志外发、上游重试或异常流量",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "发送速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 14,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (rate(container_network_transmit_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container=\"POD\",interface=\"eth0\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 网络发送 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 45,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘读取速率最高的 10 个 Pod（按 Pod 汇总容器文件系统读字节速率）；仅统计物理盘，排除 LVM/device-mapper 设备，避免同一 IO 被重复计数",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "读取速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 15,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (rate(container_fs_reads_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 磁盘读 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 45,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘写入速率最高的 10 个 Pod（按 Pod 汇总容器文件系统写字节速率）；仅统计物理盘，排除 LVM/device-mapper 重复计数",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "写入速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 16,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod) (rate(container_fs_writes_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "Pod 磁盘写 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "panels": [],
+      "id": 106,
+      "type": "row",
+      "gridPos": {
+        "y": 52,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "title": "容器级排行（Top10）",
+      "collapsed": false
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 53,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点 CPU 使用核数最高的 10 个容器（通过 namespace/pod/container 区分，包含 sidecar）；用于定位单个进程的 CPU 热点",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "核",
+          "format": "short",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 17,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod, container) (rate(container_cpu_usage_seconds_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器 CPU 使用 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 53,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点内存占用最高的 10 个容器（working_set 口径，含 sidecar）；用于定位单个容器的内存热点与 OOM 风险",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "内存",
+          "format": "bytes",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 18,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod, container) (container_memory_working_set_bytes{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",image!=\"\",container!=\"POD\"}))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器内存使用 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 53,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘读操作次数最高的 10 个容器（每秒读取次数，仅统计物理盘）；IOPS 高而吞吐低通常是大量小随机读，需关注存储延迟",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "max": null,
+          "format": "iops",
+          "min": 0,
+          "label": "IOPS",
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "max": null,
+          "format": "short",
+          "min": null,
+          "label": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 31,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}",
+          "format": "time_series",
+          "expr": "topk(10, sum by (namespace, pod, container) (rate(container_fs_reads_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器磁盘读 IOPS Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 60,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘写操作次数最高的 10 个容器（每秒写入次数，仅统计物理盘）；持续高写 IOPS 常见于日志刷盘或小文件写入",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "max": null,
+          "format": "iops",
+          "min": 0,
+          "label": "IOPS",
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "max": null,
+          "format": "short",
+          "min": null,
+          "label": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 32,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}",
+          "format": "time_series",
+          "expr": "topk(10, sum by (namespace, pod, container) (rate(container_fs_writes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "refId": "A",
+          "instant": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器磁盘写 IOPS Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 60,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘读取速率最高的 10 个容器；仅统计物理盘，排除 LVM/device-mapper 重复计数，可与上方的 Pod 维度对照定位具体容器",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "读取速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 19,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod, container) (rate(container_fs_reads_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器磁盘读 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    },
+    {
+      "aliasColors": {},
+      "gridPos": {
+        "y": 60,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "pluginVersion": "7.1.4",
+      "linewidth": 1,
+      "dashes": false,
+      "nullPointMode": "null",
+      "xaxis": {
+        "show": true,
+        "values": [],
+        "buckets": null,
+        "mode": "time",
+        "name": null
+      },
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "bars": false,
+      "description": "所选节点磁盘写入速率最高的 10 个容器；仅统计物理盘，排除 LVM/device-mapper 重复计数，写入突增常见于日志堆积或批量任务",
+      "fill": 1,
+      "datasource": "Prometheus",
+      "stack": false,
+      "spaceLength": 10,
+      "pointradius": 2,
+      "lines": true,
+      "yaxes": [
+        {
+          "logBase": 1,
+          "label": "写入速率",
+          "format": "Bps",
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "logBase": 1,
+          "label": null,
+          "format": "short",
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "timeRegions": [],
+      "dashLength": 10,
+      "id": 20,
+      "timeFrom": null,
+      "seriesOverrides": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (namespace, pod, container) (rate(container_fs_writes_bytes_total{job=~\"$kubernetes_cluster.*-cadvisor$\",kubernetes_io_hostname=~\"^$Node$\",container!=\"\",container!=\"POD\",device=~\"^/dev/(sd|nvme|vd|hd|xvd).*\"}[2m])))",
+          "datasource": "Prometheus",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}"
+        }
+      ],
+      "percentage": false,
+      "fillGradient": 0,
+      "legend": {
+        "max": true,
+        "show": true,
+        "current": true,
+        "rightSide": false,
+        "avg": false,
+        "total": false,
+        "values": true,
+        "alignAsTable": true,
+        "min": true
+      },
+      "hiddenSeries": false,
+      "points": false,
+      "thresholds": [],
+      "type": "graph",
+      "renderer": "flot",
+      "title": "容器磁盘写 Top10",
+      "steppedLine": true,
+      "timeShift": null,
+      "tooltip": {
+        "sort": 0,
+        "value_type": "individual",
+        "shared": true
+      }
+    }
+  ],
+  "graphTooltip": 0,
+  "title": "Kubernetes Pods 监控",
+  "version": 1,
+  "timepicker": {},
+  "description": "Kubernetes Pod 资源视图：按集群、节点筛选，查看节点内 Pod 的 CPU/内存/网络/磁盘使用与 Requests/Limits 分配；支持通过命名空间/详情 Pod 下拉查看任意单个 Pod 的明细（不受 Top10 限制）；node 与 cadvisor 指标按中心端 job <集群名>-node / <集群名>-node-cadvisor 过滤，KSM 指标按 kubernetes_cluster 过滤并使用 exported_node/exported_namespace",
+  "refresh": "1m",
+  "annotations": {
+    "list": [
+      {
+        "type": "dashboard",
+        "hide": true,
+        "datasource": "-- Grafana --",
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "enable": true,
+        "builtIn": 1,
+        "name": "Annotations & Alerts"
+      }
+    ]
+  },
+  "editable": true,
+  "style": "dark",
+  "timezone": "browser",
+  "uid": "k8s-pods-monitor",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "label": "集群",
+        "sort": 1,
+        "tags": [],
+        "tagValuesQuery": "",
+        "definition": "label_values(up{job=~\".*kubernetes.*-apiserver.*\"}, kubernetes_cluster)",
+        "type": "query",
+        "datasource": "Prometheus",
+        "skipUrlSync": false,
+        "tagsQuery": "",
+        "refresh": 2,
+        "hide": 0,
+        "current": null,
+        "name": "kubernetes_cluster",
+        "includeAll": true,
+        "multi": false,
+        "useTags": false,
+        "query": "label_values(up{job=~\".*kubernetes.*-apiserver.*\"}, kubernetes_cluster)",
+        "options": [],
+        "regex": "",
+        "allValue": ".*"
+      },
+      {
+        "label": "节点",
+        "sort": 1,
+        "tags": [],
+        "tagValuesQuery": "",
+        "definition": "label_values(up{job=~\"$kubernetes_cluster.*-node$\"}, kubernetes_io_hostname)",
+        "type": "query",
+        "datasource": "Prometheus",
+        "skipUrlSync": false,
+        "tagsQuery": "",
+        "refresh": 2,
+        "hide": 0,
+        "current": null,
+        "name": "Node",
+        "includeAll": true,
+        "multi": false,
+        "useTags": false,
+        "query": "label_values(up{job=~\"$kubernetes_cluster.*-node$\"}, kubernetes_io_hostname)",
+        "options": [],
+        "regex": "",
+        "allValue": ".*"
+      },
+      {
+        "tagsQuery": "",
+        "type": "query",
+        "hide": 0,
+        "includeAll": false,
+        "current": null,
+        "regex": "",
+        "name": "namespace",
+        "definition": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}, exported_namespace)",
+        "label": "命名空间",
+        "refresh": 2,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "multi": false,
+        "skipUrlSync": false,
+        "tags": [],
+        "options": [],
+        "allValue": null,
+        "query": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\"}, exported_namespace)",
+        "useTags": false,
+        "datasource": "Prometheus"
+      },
+      {
+        "tagsQuery": "",
+        "type": "query",
+        "hide": 0,
+        "includeAll": false,
+        "current": null,
+        "regex": "",
+        "name": "pod",
+        "definition": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\",exported_namespace=~\"^$namespace$\"}, pod)",
+        "label": "详情 Pod",
+        "refresh": 2,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "multi": false,
+        "skipUrlSync": false,
+        "tags": [],
+        "options": [],
+        "allValue": null,
+        "query": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_node=~\"^$Node$\",exported_namespace=~\"^$namespace$\"}, pod)",
+        "useTags": false,
+        "datasource": "Prometheus"
+      }
+    ]
+  },
+  "schemaVersion": 27,
+  "links": []
+}

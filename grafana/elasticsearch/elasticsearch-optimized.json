@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "面向 elasticsearch_exporter 1.7.0 优化的 Elasticsearch 监控面板（v4）。相对 v3：修正旧版指标名兜底（mem_res_bytes/max_file_descriptors/process_start_time/merges size_bytes 均已按 1.7.0 实测命名修正）、移除 ES5+ 恒为 0 的 filter cache 面板、修复 gauge 误用 irate（删除速率）与无 name 标签指标的查空过滤（活跃查询/Scroll 上下文），并新增节点分片数、查询/请求缓存命中率、Segments 内存构成、磁盘 I/O 面板。",
+  "description": "面向 elasticsearch_exporter 1.7.0 的 Elasticsearch 监控面板，指标命名按 1.7.0 实测适配。覆盖节点分片数、查询/请求缓存命中率、Segments 内存构成、磁盘 I/O 等面板。",
   "editable": true,
   "gnetId": 6483,
   "graphTooltip": 1,
@@ -477,7 +477,7 @@
         }
       ],
       "valueName": "current",
-      "description": "JVM 堆内存使用率（百分比）。原版把 heap 与 non-heap 混在一起算分母（non-heap 的 max 可能为 -1 导致偏差），此处已改为仅统计 area=\"heap\"，并用 max 取 Xmx 作为分母；若 exporter 无 area 标签则自动回退为原公式。"
+      "description": "JVM 堆内存使用率（百分比）。仅统计 area=\"heap\"，用 max 取 Xmx 作为分母；若 exporter 无 area 标签则自动回退为总量/已用 口径。"
     },
     {
       "cacheTimeout": null,
@@ -2189,7 +2189,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点 translog 当前操作数（当前值）。原版误用了 irate()，该指标是 Gauge 而非计数器，已改为直接展示当前值。"
+      "description": "各节点 translog 当前操作数（Gauge 指标，直接展示当前值）。"
     },
     {
       "aliasColors": {},
@@ -4231,7 +4231,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "各节点删除文档速率（irate of elasticsearch_indices_indexing_delete_total）。原版对 gauge 类指标 docs_deleted 做 irate 属误用，已改用删除操作计数器。偏高说明存在大量删除/过期数据，注意磁盘空间回收（merge 后才真正释放）。",
+      "description": "各节点删除文档速率（elasticsearch_indices_indexing_delete_total 的速率）。偏高说明存在大量删除/过期数据，注意磁盘空间回收（merge 后才真正释放）。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -5595,7 +5595,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点各类型操作速率：indexing/query/fetch/merges/refresh/flush/get 等。原版 get 序列拼写错误（get_tota）导致无数据，已修复为 get_total。"
+      "description": "各节点各类型操作速率：indexing/query/fetch/merges/refresh/flush/get 等。"
     },
     {
       "aliasColors": {},
@@ -5776,7 +5776,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点各类型操作耗时速率（秒/秒）。原版把 get_time_seconds 画了两条重复曲线，已去重。"
+      "description": "各节点各类型操作耗时速率（秒/秒）。"
     },
     {
       "collapsed": false,
@@ -5998,7 +5998,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各节点各线程池的排队任务数（elasticsearch_thread_pool_queue_count）。原版的 or active_count 兜底在两个指标并存时永远不生效（or 只返回左侧），已移除；活跃线程数请看 threads active 面板。"
+      "description": "各节点各线程池的排队任务数（elasticsearch_thread_pool_queue_count）；活跃线程数请看 threads active 面板。"
     },
     {
       "aliasColors": {},
@@ -9306,7 +9306,7 @@
         "align": false,
         "alignLevel": null
       },
-      "description": "各索引主分片的 terms 内存占用（字节）。注意：exporter 该指标命名不带 _bytes（与其他段指标不同），原版即如此，属正常。"
+      "description": "各索引主分片的 terms 内存占用（字节）。注意：exporter 该指标命名不带 _bytes（与其他段指标不同），属正常。"
     },
     {
       "aliasColors": {},

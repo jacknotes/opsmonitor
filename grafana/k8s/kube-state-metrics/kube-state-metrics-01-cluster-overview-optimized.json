@@ -1,0 +1,941 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_info{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "节点总数",
+      "type": "stat",
+      "description": "集群内节点总数（kube_node_info 计数）"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_node_status_condition{kubernetes_cluster=~\"$kubernetes_cluster\",condition=\"Ready\",status=\"true\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "节点就绪",
+      "type": "stat",
+      "description": "Ready=True 的节点数量，0 表示全部节点未就绪需排查"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Pod 总数",
+      "type": "stat",
+      "description": "所选命名空间下全部 Pod 数量（各 Phase 求和）"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Running\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Pod 运行中",
+      "type": "stat",
+      "description": "Running 状态 Pod 数量"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=~\"Pending|Failed|Unknown\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Pod 异常(Pending/Failed/Unknown)",
+      "type": "stat",
+      "description": "Pending/Failed/Unknown 状态 Pod 合计，大于0标红需排查"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_deployment_status_replicas_unavailable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} > 0) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Deployment 异常",
+      "type": "stat",
+      "description": "存在不可用副本（replicas_unavailable>0）的 Deployment 数量，大于0标红；全部健康时 count 无返回序列，故加 or vector(0) 兜底显示 0。不可用副本>0 常见于滚动发布过程（新副本未就绪/旧副本终止中），不一定伴随 Pending/Failed/Unknown Pod；发布过程中的瞬时亮红属正常，发布完成后自动恢复，若持续亮红超 5 分钟可在「异常 Pod 清单」的「未就绪」列定位卡住的 Pod"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 8,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "hiddenSeries": false,
+      "id": 9,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (phase) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{phase}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Pod 状态趋势（按 Phase 堆叠）",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "各 Phase 的 Pod 数量随时间变化，堆叠展示，用于观察发布波次与异常时段；图例为面板下方表格，显示 Min/Max/Current"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "命名空间总览：每行一个命名空间，固定 5 列（命名空间/运行/Deployment/重启/异常），无需手动切换视图。运行=Running Pod 数；Deployment=Deployment 数量；重启=容器累计重启次数；异常=Pending/Failed/Unknown Pod 数（大于0标红，置于末列）。采用 table-old 旧版表格机制，4 个查询统一按 exported_namespace 聚合（标签签名完全一致），自动按行对齐成单表。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "80%",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 10,
+      "pageSize": null,
+      "showHeader": true,
+      "styles": [
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "alias": "命名空间",
+          "pattern": "exported_namespace"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "number",
+          "unit": "short",
+          "alias": "运行",
+          "pattern": "Value #A"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "number",
+          "unit": "short",
+          "alias": "Deployment",
+          "pattern": "Value #B"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "number",
+          "unit": "short",
+          "alias": "重启",
+          "pattern": "Value #C"
+        },
+        {
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short",
+          "alias": "异常",
+          "pattern": "Value #D"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short",
+          "alias": "",
+          "pattern": "/.*/"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_namespace) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Running\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_namespace) (kube_deployment_labels{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_namespace) (kube_pod_container_status_restarts_total{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (exported_namespace) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=~\"Pending|Failed|Unknown\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "D"
+        }
+      ],
+      "title": "命名空间总览",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "异常 Pod 清单：列出当前处于 Pending/Failed/Unknown 状态，或 Running 且持续 5 分钟以上未就绪（Ready=False）的 Pod，命中维度对应列值为 1 标红，健康 Pod 不显示。「未就绪」列采用告警式 for:5m 持续时间门槛：发布/重启初期的瞬时未就绪（1~2 分钟内自行恢复）不会列出，避免误判；仅暴露真正卡住的 Pod（探针持续失败、CrashLoop 卡住、Terminating 超 5 分钟），并已排除 Pending/Failed/Succeeded 避免与其他列重复。显示 No data 属正常现象=集群无异常 Pod。发布窗口内「Deployment 异常」瞬时亮红但本表无数据属预期（未就绪未满 5 分钟）；若 Deployment 异常持续超 5 分钟仍亮红，本表「未就绪」列会出现对应 Pod 供定位。采用 table-old 旧版表格机制，4 个查询按 exported_namespace+pod 标签签名自动对齐成单表。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "80%",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 11,
+      "pageSize": null,
+      "showHeader": true,
+      "styles": [
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "alias": "命名空间",
+          "pattern": "exported_namespace"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "alias": "Pod",
+          "pattern": "pod"
+        },
+        {
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short",
+          "alias": "Pending",
+          "pattern": "Value #A"
+        },
+        {
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short",
+          "alias": "Failed",
+          "pattern": "Value #B"
+        },
+        {
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short",
+          "alias": "Unknown",
+          "pattern": "Value #C"
+        },
+        {
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short",
+          "alias": "未就绪",
+          "pattern": "Value #D"
+        },
+        {
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short",
+          "alias": "",
+          "pattern": "/.*/"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, pod) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Pending\"}) == 1",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, pod) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Failed\"}) == 1",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, pod) (kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Unknown\"}) == 1",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, pod) (min_over_time(kube_pod_status_ready{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",condition=\"false\"}[5m]) == 1 and on (exported_namespace, pod) (time() - kube_pod_start_time{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} >= 300) and on (exported_namespace, pod) kube_pod_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Running\"} == 1)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "D"
+        }
+      ],
+      "title": "异常 Pod 清单（无数据=全部健康）",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 3,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, increase(kube_pod_container_status_restarts_total{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"}[$__range]))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{exported_namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Pod 重启排行（时间范围内增量 Top10）",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "重启次数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "description": "按所选时间范围（默认6小时）内的重启增量排序，而非容器启动以来的累计值：increase(...[$__range]) 配合 topk 取增量最大的10个Pod。阶梯线含义=截至该时刻、最近一个时间范围内的累计重启次数（重启发生后抬升，超出窗口后回落）；图例为面板下方表格显示Min/Max/Current，Max 即窗口内重启峰值。用于定位 CrashLoop 与重启发生时段"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": [
+    "kubernetes",
+    "kube-state-metrics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_pod_info, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(kube_pod_info, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "命名空间",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "KSM 01 集群总览",
+  "uid": "ksm-overview",
+  "version": 9
+}

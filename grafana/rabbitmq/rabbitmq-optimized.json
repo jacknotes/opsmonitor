@@ -491,7 +491,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "decimals": 0,
-      "description": "按 vhost 汇总的等待投递（ready）与未确认（unacked）消息数。原版把 published/delivered 两个计数器画成原始值是错误的，已拆分到下方的 Message Rates 面板用 rate() 展示",
+      "description": "按 vhost 汇总的等待投递（ready）与未确认（unacked）消息数；消息速率（published/delivered 等）见下方 Message Rates 面板",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -867,7 +867,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "decimals": 0,
-      "description": "消息数最多的前 10 个队列（原版用 > 0 过滤会丢掉归零队列并造成图例闪烁，改用 topk(10)）",
+      "description": "消息数最多的前 10 个队列（topk(10)，包含归零队列）",
       "fieldConfig": {
         "defaults": {
           "custom": {}

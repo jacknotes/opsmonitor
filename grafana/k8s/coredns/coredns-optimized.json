@@ -1,0 +1,1022 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "每秒 DNS 查询请求总量（coredns_dns_requests_total 2m 速率），反映集群整体 DNS 查询压力",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m]))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "DNS 请求 QPS",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "CoreDNS 缓存命中率（hits/(hits+misses) 2m 速率占比）；低于 50% 红色、低于 80% 黄色，持续偏低说明缓存容量偏小或查询模式高度随机",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(rate(coredns_cache_hits_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) / (sum(rate(coredns_cache_hits_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) + sum(rate(coredns_cache_misses_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "缓存命中率",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "全部 DNS 请求的 P99 处理延迟（histogram_quantile 0.99，毫秒）；超过 100ms 标红，通常意味着上游转发链路抖动或 CoreDNS 负载过高",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 100 }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le)) * 1000",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "请求 P99 延迟",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "CoreDNS 回复响应的速率（coredns_dns_responses_total 2m 速率）；与请求 QPS 长期不匹配说明存在查询超时丢失",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_dns_responses_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m]))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "DNS 响应 QPS",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "转发至上游 DNS（forward 插件，coredns_forward_requests_total）的请求速率；该值越高说明缓存未命中越多",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_forward_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m]))",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "上游转发 QPS",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "CoreDNS 进程 panic 次数（所选时间范围内增量，or vector(0) 兜底）；正常恒为 0，出现任何值都需要结合 CoreDNS 版本排查插件 bug",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(increase(coredns_panics_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[$__range])) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Panics（时间范围内）",
+      "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "UDP/TCP 协议维度的每秒请求量（按 proto 聚合）；TCP 占比异常升高常意味着 UDP 响应被截断（TC 位）或大包查询增多",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
+      "hiddenSeries": false,
+      "id": 7,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (proto)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{proto}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 请求速率（按协议）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按记录类型（A/AAAA/CNAME/PTR/other）的请求速率；AAAA 占比过高但集群无 IPv6 时，可考虑在 CoreDNS 用 template 插件过滤以减负",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
+      "hiddenSeries": false,
+      "id": 8,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (type)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{type}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 请求速率（按查询类型）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "响应码速率堆叠（NOERROR/NXDOMAIN/SERVFAIL 等，仅显示出现过的响应码）；SERVFAIL 持续出现说明上游或插件解析异常",
+      "fill": 7,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 11 },
+      "hiddenSeries": false,
+      "id": 9,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_dns_responses_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (rcode)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{rcode}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 响应码分布",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "请求处理延迟分位曲线（P50/P90/P99，毫秒）；P99 与 P50 差距过大说明个别慢查询（通常是缓存未命中走上游）拖慢整体",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum(rate(coredns_dns_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.90, sum(rate(coredns_dns_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le)) * 1000",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 请求延迟分位（P50/P90/P99）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "缓存中 success（正常解析）/denial（NXDOMAIN 否定缓存）条目数量；增长后趋于平稳属正常，缓存满后按容量 LRU 淘汰",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 18 },
+      "hiddenSeries": false,
+      "id": 11,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(coredns_cache_entries{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}) by (type)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{type}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "缓存条目数（按类型）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "short", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "总缓存命中率曲线（hits/(hits+misses) 2m 速率）；denial（否定缓存）命中占比高说明大量对不存在域名的重复查询被有效吸收。注：当前 CoreDNS 1.8.3 的 misses 指标无 type 标签，故不按缓存类型拆分",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 18 },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(rate(coredns_cache_hits_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) / (sum(rate(coredns_cache_hits_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) + sum(rate(coredns_cache_misses_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "命中率",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "缓存命中率趋势",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "percent", "label": null, "logBase": 1, "max": 100, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "请求报文大小 P99（按 proto 分线，字节）；UDP 请求大包增多时注意 EDNS 与截断问题",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 25 },
+      "hiddenSeries": false,
+      "id": 13,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(coredns_dns_request_size_bytes_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le,proto))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{proto}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 请求包大小 P99（按协议）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "bytes", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "响应报文大小 P99（按 proto 分线，字节）；UDP 响应超过 MTU 会被截断触发客户端 TCP 重试，可结合请求速率按协议面板观察 TCP 是否同步升高",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 25 },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(coredns_dns_response_size_bytes_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le,proto))",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{proto}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DNS 响应包大小 P99（按协议）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 0, "format": "bytes", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按上游地址（to 标签）分流的转发请求速率；某上游独高说明其余上游被健康检查剔除，需检查上游 DNS 可用性",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 32 },
+      "hiddenSeries": false,
+      "id": 15,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_forward_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (to)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{to}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "上游转发请求速率（按上游）",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "forward 插件到上游的连接复用（conn cache）命中/未命中速率（按 proto 分线）；未命中持续偏高意味着连接频繁重建，增加上游压力与延迟。注：node-local-dns（CoreDNS 1.7.0）未暴露 forward_conn_cache_* 指标，仅选择 node-local-dns 时本面板无数据",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 32 },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_forward_conn_cache_hits_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (proto)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "命中-{{proto}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(coredns_forward_conn_cache_misses_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (proto)",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "未命中-{{proto}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "上游连接缓存命中/未命中",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个 DNS Pod 实例的请求速率（图例显示 命名空间/Pod名/IP）；coredns 采集端未附加 pod 标签，Pod 名通过 KSM kube_pod_info 按 Pod IP 关联；多副本负载应大致均衡，偏差大时检查 kube-proxy 转发或 NodeLocal DNSCache",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 39 },
+      "hiddenSeries": false,
+      "id": 17,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "label_replace(sum(rate(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (instance), \"ip\", \"$1\", \"instance\", \"([^:]+).*\") * on(ip) group_left(pod, exported_namespace) label_replace(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",namespace=\"kube-system\",pod=~\"(coredns|node-local-dns).*\"}, \"ip\", \"$1\", \"pod_ip\", \"(.+)\")",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{exported_namespace}}/{{pod}}（{{instance}}）",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各 Pod 请求 QPS",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "reqps", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "各 DNS Pod 的 P99 请求延迟（图例显示 命名空间/Pod名/IP，毫秒）；单 Pod 明显高于其他实例说明该实例缓存冷或所在节点/上游链路异常；Pod 名通过 KSM kube_pod_info 按 Pod IP 关联",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 39 },
+      "hiddenSeries": false,
+      "id": 18,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": { "alertThreshold": true },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "label_replace(histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{kubernetes_cluster=~\"$kubernetes_cluster\",k8s_app=~\"$service\"}[2m])) by (le,instance)) * 1000, \"ip\", \"$1\", \"instance\", \"([^:]+).*\") * on(ip) group_left(pod, exported_namespace) label_replace(kube_pod_info{kubernetes_cluster=~\"$kubernetes_cluster\",namespace=\"kube-system\",pod=~\"(coredns|node-local-dns).*\"}, \"ip\", \"$1\", \"pod_ip\", \"(.+)\")",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{exported_namespace}}/{{pod}}（{{instance}}）",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各 Pod 请求 P99 延迟",
+      "tooltip": { "shared": true, "sort": 2, "value_type": "individual" },
+      "type": "graph",
+      "xaxis": { "buckets": null, "mode": "time", "name": null, "show": true, "values": [] },
+      "yaxes": [
+        { "decimals": 1, "format": "ms", "label": null, "logBase": 1, "max": null, "min": 0, "show": true },
+        { "format": "short", "label": null, "logBase": 1, "max": null, "min": null, "show": true }
+      ],
+      "yaxis": { "align": false, "alignLevel": null }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": ["kubernetes", "coredns", "dns"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*kubernetes.*-apiserver\"}, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(up{job=~\".*kubernetes.*-apiserver\"}, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": null,
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\"}, k8s_app)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "DNS 服务",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": "label_values(coredns_dns_requests_total{kubernetes_cluster=~\"$kubernetes_cluster\"}, k8s_app)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "title": "CoreDNS 监控",
+  "uid": "coredns-optimized",
+  "version": 1
+}

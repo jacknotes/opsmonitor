@@ -1110,8 +1110,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.209:9913",
-          "value": "192.168.13.209:9913"
+          "text": "192.168.xxx:9913",
+          "value": "192.168.xxx:9913"
         },
         "datasource": "Prometheus",
         "definition": "label_values(nginx_server_info, instance)",
@@ -1140,14 +1140,14 @@
           "value": "$__all"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(nginx_server_bytes{instance=~\"$Instance\", host=~\"^[a-z.]+(hs.com$|homsom.com$)\"},host)",
+        "definition": "label_values(nginx_server_bytes{instance=~\"$Instance\", host=~\"^[a-z.]+(example.com$)\"},host)",
         "hide": 0,
         "includeAll": true,
         "label": null,
         "multi": false,
         "name": "Host",
         "options": [],
-        "query": "label_values(nginx_server_bytes{instance=~\"$Instance\", host=~\"^[a-z.]+(hs.com$|homsom.com$)\"},host)",
+        "query": "label_values(nginx_server_bytes{instance=~\"$Instance\", host=~\"^[a-z.]+(example.com$)\"},host)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

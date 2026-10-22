@@ -1,0 +1,757 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_deployment_labels{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Deployment 总数",
+      "type": "stat",
+      "description": "所选命名空间下 Deployment 总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_deployment_status_replicas_unavailable{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} > 0) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Deployment 异常",
+      "type": "stat",
+      "description": "存在不可用副本（>0）的 Deployment 数量，大于0标红"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_statefulset_labels{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "StatefulSet 总数",
+      "type": "stat",
+      "description": "StatefulSet 总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_daemonset_labels{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "DaemonSet 总数",
+      "type": "stat",
+      "description": "DaemonSet 总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "未就绪"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 10,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, deployment) (kube_deployment_spec_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "期望",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, deployment) (kube_deployment_status_replicas_available{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "就绪",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, deployment) (kube_deployment_spec_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} - kube_deployment_status_replicas_available{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "未就绪",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, deployment) (kube_deployment_status_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "当前",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, deployment) (kube_deployment_status_replicas_updated{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已更新",
+          "refId": "E"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "deployment": 0,
+              "exported_namespace": 1
+            },
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "deployment": "Deployment",
+              "Value #A": "期望",
+              "Value #B": "就绪",
+              "Value #C": "未就绪",
+              "Value #D": "当前",
+              "Value #E": "已更新"
+            }
+          }
+        }
+      ],
+      "title": "Deployment 副本状态",
+      "type": "table",
+      "description": "每个 Deployment 的期望/就绪/未就绪/当前/已更新副本（列结构与StatefulSet面板对齐，未就绪=期望-就绪），未就绪列大于0标红，常见于发布中或异常"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "未就绪"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 11,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, statefulset) (kube_statefulset_status_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "期望",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, statefulset) (kube_statefulset_status_replicas_ready{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "就绪",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, statefulset) (kube_statefulset_status_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} - kube_statefulset_status_replicas_ready{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "未就绪",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, statefulset) (kube_statefulset_status_replicas_current{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "当前",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, statefulset) (kube_statefulset_status_replicas_updated{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已更新",
+          "refId": "E"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "statefulset": 0,
+              "exported_namespace": 1
+            },
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "statefulset": "StatefulSet",
+              "Value #A": "期望",
+              "Value #B": "就绪",
+              "Value #C": "未就绪",
+              "Value #D": "当前",
+              "Value #E": "已更新"
+            }
+          }
+        }
+      ],
+      "title": "StatefulSet 副本状态",
+      "type": "table",
+      "description": "每个 StatefulSet 的期望/就绪/未就绪/当前/已更新副本，未就绪列大于0标红"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "未就绪"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 12,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, daemonset) (kube_daemonset_status_desired_number_scheduled{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "期望",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, daemonset) (kube_daemonset_status_number_ready{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "就绪",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, daemonset) (kube_daemonset_status_desired_number_scheduled{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"} - kube_daemonset_status_number_ready{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "未就绪",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, daemonset) (kube_daemonset_status_current_number_scheduled{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已调度",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, daemonset) (kube_daemonset_status_updated_number_scheduled{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已更新",
+          "refId": "E"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "daemonset": 0,
+              "exported_namespace": 1
+            },
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "daemonset": "DaemonSet",
+              "Value #A": "期望",
+              "Value #B": "就绪",
+              "Value #C": "未就绪",
+              "Value #D": "当前",
+              "Value #E": "已更新"
+            }
+          }
+        }
+      ],
+      "title": "DaemonSet 副本状态",
+      "type": "table",
+      "description": "每个 DaemonSet 的期望/就绪/未就绪/当前/已更新 Pod 数（列结构与StatefulSet面板对齐，当前=current_number_scheduled 已调度到节点的Pod数），未就绪列大于0标红"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 13,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_current_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "当前副本",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_desired_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "期望副本",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_min_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "最小副本",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_max_replicas{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "最大副本",
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "horizontalpodautoscaler": 0,
+              "exported_namespace": 1
+            },
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "horizontalpodautoscaler": "HPA",
+              "Value #A": "当前副本",
+              "Value #B": "期望副本",
+              "Value #C": "最小副本",
+              "Value #D": "最大副本"
+            }
+          }
+        }
+      ],
+      "title": "HPA 弹性伸缩状态",
+      "type": "table",
+      "description": "HPA 当前/期望/最小/最大副本。注意指标命名：kube-state-metrics v2.x 为 kube_horizontalpodautoscaler_*（v1.x 才是 kube_hpa_*），两个集群的 ksm 2.2.4 均为 v2 命名；test 集群无 HPA 对象故无数据属正常"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": [
+    "kubernetes",
+    "kube-state-metrics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_deployment_labels, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(kube_deployment_labels, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_deployment_labels{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "命名空间",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(kube_deployment_labels{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "KSM 03 工作负载",
+  "uid": "ksm-workloads",
+  "version": 6
+}

@@ -1,0 +1,775 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_persistentvolume_labels{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "PV 总数",
+      "type": "stat",
+      "description": "集群内 PersistentVolume 总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_persistentvolumeclaim_labels{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "PVC 总数",
+      "type": "stat",
+      "description": "所选命名空间下 PVC 总数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(kube_persistentvolumeclaim_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Bound\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "已绑定 PVC",
+      "type": "stat",
+      "description": "真实处于 Bound 状态（phase值==1）的 PVC 数量，小于 PVC 总数说明有 PVC 未绑定（Pending/Lost）需关注；必须加 ==1 值过滤，否则每个 PVC 都有一条 phase=Bound=0 的序列会被误计数"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "容量"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "已绑定"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "可用"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "已释放"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "失败"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 10,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume) (kube_persistentvolume_capacity_bytes{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "容量",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume) (kube_persistentvolume_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=\"Bound\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已绑定",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume) (kube_persistentvolume_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=\"Available\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "可用",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume) (kube_persistentvolume_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=\"Released\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "已释放",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume) (kube_persistentvolume_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",phase=\"Failed\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "失败",
+          "refId": "E"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "persistentvolume": "PV",
+              "Value #A": "容量",
+              "Value #B": "已绑定",
+              "Value #C": "可用",
+              "Value #D": "已释放",
+              "Value #E": "失败"
+            }
+          }
+        }
+      ],
+      "title": "PV 状态",
+      "type": "table",
+      "description": "每个 PV 的容量与状态（Bound/Available/Released/Failed）。状态列为0/1矩阵，以 是/否 枚举显示（1=是该状态）；失败=是 标红"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "申请容量"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bound"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pending"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Lost"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": 1,
+                    "value": "0",
+                    "text": "否"
+                  },
+                  {
+                    "type": 1,
+                    "value": "1",
+                    "text": "是"
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 11,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_resource_requests_storage_bytes{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "申请容量",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Bound\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Bound",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Pending\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Pending",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_status_phase{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\",phase=\"Lost\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Lost",
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {
+          "options": {},
+          "id": "merge"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "persistentvolumeclaim": "PVC",
+              "Value #A": "申请容量",
+              "Value #B": "Bound",
+              "Value #C": "Pending",
+              "Value #D": "Lost"
+            }
+          }
+        }
+      ],
+      "title": "PVC 状态",
+      "type": "table",
+      "description": "每个 PVC 的申请容量与绑定状态。状态列为0/1矩阵，以 是/否 枚举显示（1=是该状态）；Pending/Lost=是 标红（Pending 表示未绑定到 PV）"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 12,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (persistentvolume, name, claim_namespace) (kube_persistentvolume_claim_ref{kubernetes_cluster=~\"$kubernetes_cluster\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{persistentvolume}}",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "persistentvolume": "PV",
+              "name": "PVC",
+              "claim_namespace": "命名空间",
+              "Value #A": "绑定关系"
+            }
+          }
+        }
+      ],
+      "title": "PV 与 PVC 绑定关系",
+      "type": "table",
+      "description": "PV 与 PVC 的绑定关系（claim_ref），用于追溯存储归属"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 13,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_namespace, pod, persistentvolumeclaim) (kube_pod_spec_volumes_persistentvolumeclaims_info{kubernetes_cluster=~\"$kubernetes_cluster\",exported_namespace=~\"$namespace\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "命名空间",
+              "pod": "Pod",
+              "persistentvolumeclaim": "PVC",
+              "Value #A": "挂载"
+            }
+          }
+        }
+      ],
+      "title": "Pod 挂载 PVC 明细",
+      "type": "table",
+      "description": "Pod 挂载 PVC 明细（kube_pod_spec_volumes_persistentvolumeclaims_info）"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 22,
+  "style": "dark",
+  "tags": [
+    "kubernetes",
+    "kube-state-metrics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_persistentvolume_labels, kubernetes_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "集群",
+        "multi": false,
+        "name": "kubernetes_cluster",
+        "options": [],
+        "query": "label_values(kube_persistentvolume_labels, kubernetes_cluster)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(kube_persistentvolumeclaim_labels{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "命名空间",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(kube_persistentvolumeclaim_labels{kubernetes_cluster=~\"$kubernetes_cluster\"}, exported_namespace)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "KSM 04 存储",
+  "uid": "ksm-storage",
+  "version": 4
+}

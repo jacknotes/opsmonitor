@@ -1241,7 +1241,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": true
       },
-      "tableColumn": "{app=\"Backup\", env=\"pro\", instance=\"192.168.13.182:9182\", ip=\"192.168.13.182\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "{app=\"Backup\", env=\"pro\", instance=\"192.168.xxx:9182\", ip=\"192.168.xxx\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "100 - (windows_os_physical_memory_free_bytes{job=~\"$job\",instance=~\"$instance\"} / windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"})*100",
@@ -1332,7 +1332,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "windows_cs_logical_processors{app=\"Backup\", env=\"pro\", instance=\"192.168.13.182:9182\", ip=\"192.168.13.182\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "windows_cs_logical_processors{app=\"Backup\", env=\"pro\", instance=\"192.168.xxx:9182\", ip=\"192.168.xxx\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "windows_cs_logical_processors{job=~\"$job\",instance=~\"$instance\"}",
@@ -1429,7 +1429,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "windows_cs_physical_memory_bytes{app=\"Backup\", env=\"pro\", instance=\"192.168.13.182:9182\", ip=\"192.168.13.182\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "windows_cs_physical_memory_bytes{app=\"Backup\", env=\"pro\", instance=\"192.168.xxx:9182\", ip=\"192.168.xxx\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "windows_cs_physical_memory_bytes{job=~\"$job\",instance=~\"$instance\"}",
@@ -1526,7 +1526,7 @@
         "lineColor": "rgb(31, 120, 193)",
         "show": false
       },
-      "tableColumn": "{app=\"Backup\", env=\"pro\", instance=\"192.168.13.182:9182\", ip=\"192.168.13.182\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
+      "tableColumn": "{app=\"Backup\", env=\"pro\", instance=\"192.168.xxx:9182\", ip=\"192.168.xxx\", job=\"consul-windows_exporter\", project=\"node\", team=\"ops\"}",
       "targets": [
         {
           "expr": "time() - windows_system_system_up_time{job=~\"$job\",instance=~\"$instance\"}",
@@ -3477,8 +3477,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "192.168.13.182:9182",
-          "value": "192.168.13.182:9182"
+          "text": "192.168.xxx:9182",
+          "value": "192.168.xxx:9182"
         },
         "datasource": "Prometheus",
         "definition": "label_values(up{job=~\"$job\"}, instance)",

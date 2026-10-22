@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "IIS 优化版监控面板（windows_exporter iis collector，基于 172.168.2.236:9182 实测指标生成）。相对原版 IIS 面板的主要变化：1) 适配新版 windows_exporter 枚举指标——应用池状态改为字符串标签 {state=\"Running\",...} 且仅当前状态取值 1，原版数值型 state==1 查询在新版已失效；2) 变量改为 datasource/job/host/site/app 五级过滤，host/site/app 支持多选与全选；3) 按 总览/站点流量/错误与限流/应用池/工作进程/缓存 六个分区组织，新增当前连接、404 与锁定错误、带宽限流 Blocked/Rejected、CGI/ISAPI、工作进程线程与失败次数、四级缓存命中率等面板；4) 站点级序列统一 topk 限制防止图例爆炸，计数器统一 5m rate。注意：worker 级指标（请求/错误/线程/缓存，exported_app+pid 标签；因 consul 注入的目标标签 app=WebSite 与 exporter 原生 app 标签冲突，Prometheus 已将其重命名为 exported_app，面板过滤与图例均使用 exported_app）仅覆盖当前运行中的工作进程；w3wp 进程指标无 app 标签仅受 Host 过滤；本机站点与应用池数量 50+，应用池状态卡片较多属正常。 性能设计：状态/计数类卡片使用 instant 查询仅取当前值；状态卡按应用池名跨主机聚合；所有站点/应用池/进程级面板均加 topk 上限；默认刷新 1m。多主机全选时查询量较大，建议配合 Host 变量按需筛选。",
+  "description": "IIS 监控面板（windows_exporter iis collector，基于 172.168.xxx:9182 实测指标适配）。1) 应用池状态为字符串标签 {state=\"Running\",...} 且仅当前状态取值 1（数值型 state==1 查询在新版 windows_exporter 已失效）；2) 变量改为 datasource/job/host/site/app 五级过滤，host/site/app 支持多选与全选；3) 按 总览/站点流量/错误与限流/应用池/工作进程/缓存 六个分区组织，含当前连接、404 与锁定错误、带宽限流 Blocked/Rejected、CGI/ISAPI、工作进程线程与失败次数、四级缓存命中率等面板；4) 站点级序列统一 topk 限制防止图例爆炸，计数器统一 5m rate。注意：worker 级指标（请求/错误/线程/缓存，exported_app+pid 标签；因 consul 注入的目标标签 app=WebSite 与 exporter 原生 app 标签冲突，Prometheus 已将其重命名为 exported_app，面板过滤与图例均使用 exported_app）仅覆盖当前运行中的工作进程；w3wp 进程指标无 app 标签仅受 Host 过滤；本机站点与应用池数量 50+，应用池状态卡片较多属正常。 性能设计：状态/计数类卡片使用 instant 查询仅取当前值；状态卡按应用池名跨主机聚合；所有站点/应用池/进程级面板均加 topk 上限；默认刷新 1m。多主机全选时查询量较大，建议配合 Host 变量按需筛选。",
   "editable": true,
   "gnetId": 12495,
   "graphTooltip": 1,
