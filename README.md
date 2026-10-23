@@ -1,6 +1,6 @@
 # OpsMonitor — Grafana 仪表盘与 Prometheus 告警规则合集
 
-面向中间件、主机系统与 Kubernetes 集群的 Grafana 仪表盘合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL、Nginx、IIS、Linux、Windows**，以及 **KSM、CoreDNS、Argo Rollouts、API Server、Etcd、Cluster、Nodes、Pods** 等 K8s 监控视角。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
+面向中间件、主机系统与 Kubernetes 集群的 Grafana 仪表盘合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL、Nginx、IIS、Linux、Windows**，以及 **KSM、CoreDNS、Argo Rollouts、ArgoCD、API Server、Etcd、Cluster、Nodes、Pods** 等 K8s 监控视角。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
 
 ## 仪表盘一览
 
@@ -21,13 +21,14 @@
 | `grafana/k8s/kube-state-metrics/` | KSM 04 存储 | `ksm-storage` | 7 | PV/PVC/StorageClass 容量与状态 |
 | `grafana/k8s/coredns/` | CoreDNS 监控 | `coredns-optimized` | 18 | 请求/响应码/缓存/转发/上游延迟，适配 kube-dns 与 node-local-dns |
 | `grafana/k8s/argo-rollouts/` | Argo Rollouts 发布状态 | `argo-rollouts` | 9 | 发布阶段、副本可用性与异常事件 |
+| `grafana/k8s/argocd/` | ArgoCD 应用发布监控 | `argocd` | 42 | 应用健康/同步状态、协调与工作队列、Git/gRPC/Redis、集群连接与缓存（36 面板 + 6 分类行） |
 | `grafana/k8s/kubernetes-api-server/` | Kubernetes API Server 监控 | `kube-apiserver-optimized` | 18 | 请求延迟、错误率、Watch、准入与证书到期 |
 | `grafana/k8s/kubernetes-cluster/` | Kubernetes Cluster 监控 | `k8s-cluster-monitor` | 29 | 节点状态总览、资源水位、Requests、限流与网络 |
 | `grafana/k8s/kubernetes-etcd/` | Etcd 监控 | `etcd-monitor` | 30 | 成员健康、Leader、磁盘/DB 大小、gRPC 与延迟分位 |
 | `grafana/k8s/kubernetes-nodes/` | Kubernetes Nodes(Optimized) | `qNcFB-jvz` | 41 | 节点资源、kubelet/cadvisor、文件系统与网络 |
 | `grafana/k8s/kubernetes-pods/` | Kubernetes Pods 监控 | `k8s-pods-monitor` | 38 | 节点资源概览、指定 Pod 下钻、状态/重启/限流，Pod 与容器级 Top10（32 面板 + 6 分类行） |
 
-每个目录同时保留社区原版模板（文件名不带 `-optimized`，如 `RabbitMQ.json`、`Kubernetes Cluster.json`），仅作对照参考，不参与导入；`grafana/k8s/argocd/argocd.json` 为 ArgoCD 原版模板。
+每个目录同时保留社区原版模板（文件名不带 `-optimized`，如 `RabbitMQ.json`、`Kubernetes Cluster.json`），仅作对照参考，不参与导入；ArgoCD 目录同样为 `argocd.json`（原版）+ `argocd-optimized.json`（优化版）。
 
 ## 文件命名规范
 
@@ -56,7 +57,7 @@
 | Nginx | [hnlq715/nginx-vts-exporter](https://github.com/hnlq715/nginx-vts-exporter)（实测 0.10.3 / nginx 1.17.3） |
 | IIS / Windows | [prometheus-community/windows_exporter](https://github.com/prometheus-community/windows_exporter)（iis、os、net、service、process、system 采集器；旧环境可用 wmi_exporter 0.7.x/0.8.x） |
 | Linux | [prometheus/node_exporter](https://github.com/prometheus/node_exporter) 1.8.x |
-| Kubernetes 基础 | KSM 2.2.x、kubelet 内置 cadvisor、etcd 3.5、kube-apiserver 1.23、CoreDNS 1.7/1.8、argo-rollouts |
+| Kubernetes 基础 | KSM 2.2.x、kubelet 内置 cadvisor、etcd 3.5、kube-apiserver 1.23、CoreDNS 1.7/1.8、argo-rollouts、ArgoCD（application-controller / server / repo-server metrics） |
 | Prometheus | 规则文件兼容 Prometheus 2.x / VictoriaMetrics |
 | Alertmanager | 邮件 / 企业微信 / 钉钉 webhook 路由 |
 
@@ -70,6 +71,9 @@
 - **K8s 标签口径**：经 KSM 联邦后命名空间/节点标签为 `exported_namespace` / `exported_node`；cadvisor 与 kubelet 侧指标用 `kubernetes_io_hostname` 标识节点，集群通过 `job=~"$kubernetes_cluster.*-cadvisor$|.*-node$"` 区分。KSM 的 Pod 指标自身不带节点标签，节点过滤通过 `and on (exported_namespace, pod) kube_pod_info{exported_node=~"^$Node$"}` 关联。
 - **K8s 面板数据起点**：下钻面板（如「指定 Pod 详情」）只展示对象存在期间的数据，起点为 Pod/容器创建时间而非仪表盘时间选择器的起点；排查历史问题请选择覆盖对象生命周期的 Pod。
 - **容器级网络**：cadvisor 的 `container_network_*` 仅提供 Pod 沙箱维度（`container="POD"`）与 Pod 汇总，没有容器级网络序列，因此容器级排行提供 CPU/内存/磁盘读写与 IOPS，容器网络见 Pod 级 Top10。
+- **ArgoCD 指标口径**：数据来自 `argocd-server-metrics` 抓取任务下的三个组件（application-controller、server、repo-server）。`go_*`、`grpc_server_*`、`process_*`、`workqueue_*` 是通用指标名，查询必须带 `job="argocd-server-metrics"` 限定，避免混入其它抓取目标。`argocd_app_info` 的 `namespace` 标签恒为 ArgoCD 安装命名空间，不能用于按业务命名空间过滤，仪表盘改用 `project` 与 `dest_server`（目标集群）两个变量。
+- **ArgoCD 空态语义**：「gRPC 非 OK 响应」「Redis 失败请求」「K8s API 非 2xx 响应」只显示窗口内大于 0 的序列，空图表示当前健康；源模板的「Operations」依赖 `operation` 标签，该标签在当前版本恒为空（面板恒为 0），优化版已替换为「异常应用」。
+- **ArgoCD Redis 耗时**：新版（`argocd_redis_request_duration_seconds_*`）与旧版（`argocd_redis_request_duration_*`）指标由不同组件上报，P95 面板用两条线分别呈现，不能直接相加或合并。
 
 ## 使用方式
 
@@ -141,7 +145,8 @@ opsmonitor/
     │   └── windows-wmi-optimized.json          # 优化版（wmi_exporter 0.7/0.8）
     └── k8s/
         ├── argocd/
-        │   └── argocd.json                     # 社区原版
+        │   ├── argocd.json                      # 社区原版
+        │   └── argocd-optimized.json            # 优化版（推荐）
         ├── argo-rollouts/
         │   └── argo-rollouts-optimized.json
         ├── coredns/
