@@ -1,6 +1,6 @@
 # OpsMonitor — Grafana 仪表盘与 Prometheus 告警规则合集
 
-面向中间件、主机系统与 Kubernetes 集群的 Grafana 仪表盘合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL、Nginx、IIS、Linux、Windows**，以及 **KSM、CoreDNS、Argo Rollouts、ArgoCD、API Server、Etcd、Cluster、Nodes、Pods** 等 K8s 监控视角。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
+面向中间件、主机系统与 Kubernetes 集群的 Grafana 仪表盘合集，覆盖 **RabbitMQ、Redis、Elasticsearch、MySQL、Nginx、IIS、Linux、Windows、LVS、ESXi、Kafka、SQL Server、ZooKeeper**，以及 **KSM、CoreDNS、Argo Rollouts、ArgoCD、API Server、Etcd、Cluster、Nodes、Pods** 等 K8s 监控视角。包含两部分内容：基于 Prometheus 数据源的 Grafana Dashboard（社区原版基础上深度优化：修正失效查询、补齐监控指标、每个面板中文说明，开箱即用），以及配套的 Prometheus 告警规则与 Alertmanager 配置。
 
 ## 仪表盘一览
 
@@ -27,6 +27,12 @@
 | `grafana/k8s/kubernetes-etcd/` | Etcd 监控 | `etcd-monitor` | 30 | 成员健康、Leader、磁盘/DB 大小、gRPC 与延迟分位 |
 | `grafana/k8s/kubernetes-nodes/` | Kubernetes Nodes(Optimized) | `qNcFB-jvz` | 41 | 节点资源、kubelet/cadvisor、文件系统与网络 |
 | `grafana/k8s/kubernetes-pods/` | Kubernetes Pods 监控 | `k8s-pods-monitor` | 38 | 节点资源概览、指定 Pod 下钻、状态/重启/限流，Pod 与容器级 Top10（32 面板 + 6 分类行） |
+| `grafana/lvs/` | LVS (Optimized) | `lvs-opt-5672` | 26 | 基于 node_exporter ipvs collector，VIP/后端/连接/流量/权重分区（8 卡片 + 11 图 + 后端明细表） |
+| `grafana/nginx_upstream/` | Nginx Upstream (Optimized) | `nginx-upstream-opt` | 24 | 基于 Pushgateway 上报的 `nginx_upstream_status`，后端在线/离线、分组在线率与采集健康（8 卡片 + 10 图 + 3 表） |
+| `grafana/esxi/` | ESXi (Optimized) | `esxi-opt-10076` | 38 | 基于 vmware_exporter，主机资源/数据存储/虚拟机/硬件传感器分区（8 卡片 + 15 图 + 10 表） |
+| `grafana/kafka/` | Kafka (Optimized) | `kafka-opt-11962` | 52 | 基于 jmx_exporter，集群健康/吞吐/延迟/请求异常/消费组/JVM 分区（8 卡片 + 42 图 + 2 明细表） |
+| `grafana/sqlserver/` | SQL Server (Optimized) | `sqlserver-opt` | 34 | 基于 mssql_exporter，连接阻塞/内存缓存/吞吐等待/日志明细分区（8 卡片 + 20 图 + 数据库明细表） |
+| `grafana/zookeeper/` | ZooKeeper (Optimized) | `zookeeper-opt-10465` | 83 | ZK 自带指标端点 + JVM，九大分区、三列紧凑布局（8 卡片 + 57 图 + 1 明细表），JVM 区紧随选主区 |
 
 每个目录同时保留社区原版模板（文件名不带 `-optimized`，如 `RabbitMQ.json`、`Kubernetes Cluster.json`），仅作对照参考，不参与导入；ArgoCD 目录同样为 `argocd.json`（原版）+ `argocd-optimized.json`（优化版）。
 
@@ -57,6 +63,9 @@
 | Nginx | [hnlq715/nginx-vts-exporter](https://github.com/hnlq715/nginx-vts-exporter)（实测 0.10.3 / nginx 1.17.3） |
 | IIS / Windows | [prometheus-community/windows_exporter](https://github.com/prometheus-community/windows_exporter)（iis、os、net、service、process、system 采集器；旧环境可用 wmi_exporter 0.7.x/0.8.x） |
 | Linux | [prometheus/node_exporter](https://github.com/prometheus/node_exporter) 1.8.x |
+| Kafka | [prometheus/jmx_exporter](https://github.com/prometheus/jmx_exporter) javaagent（`kafka-2_0_0.yml` 采集规则），暴露 `kafka_*` 与 `jvm_*` 指标 |
+| SQL Server | [burningalchemist/sql_exporter](https://github.com/burningalchemist/sql_exporter) / [awaragi/prometheus-mssql-exporter](https://github.com/awaragi/prometheus-mssql-exporter)（`mssql_*` 指标），账号需具备 `VIEW SERVER STATE` 与 `VIEW ANY DEFINITION` 权限 |
+| ZooKeeper | 内置指标端点 `PrometheusMetricsProvider`（`metricsProvider.httpPort`，默认 7000，3.6+ 已自带 `jvm_*`）；旧版本可用 `dabealu/zookeeper-exporter` 或同机 jmx_exporter javaagent 补 JVM 指标 |
 | Kubernetes 基础 | KSM 2.2.x、kubelet 内置 cadvisor、etcd 3.5、kube-apiserver 1.23、CoreDNS 1.7/1.8、argo-rollouts、ArgoCD（application-controller / server / repo-server metrics） |
 | Prometheus | 规则文件兼容 Prometheus 2.x / VictoriaMetrics |
 | Alertmanager | 邮件 / 企业微信 / 钉钉 webhook 路由 |
@@ -74,6 +83,25 @@
 - **ArgoCD 指标口径**：数据来自 `argocd-server-metrics` 抓取任务下的三个组件（application-controller、server、repo-server）。`go_*`、`grpc_server_*`、`process_*`、`workqueue_*` 是通用指标名，查询必须带 `job="argocd-server-metrics"` 限定，避免混入其它抓取目标。`argocd_app_info` 的 `namespace` 标签恒为 ArgoCD 安装命名空间，不能用于按业务命名空间过滤，仪表盘改用 `project` 与 `dest_server`（目标集群）两个变量。
 - **ArgoCD 空态语义**：「gRPC 非 OK 响应」「Redis 失败请求」「K8s API 非 2xx 响应」只显示窗口内大于 0 的序列，空图表示当前健康；源模板的「Operations」依赖 `operation` 标签，该标签在当前版本恒为空（面板恒为 0），优化版已替换为「异常应用」。
 - **ArgoCD Redis 耗时**：新版（`argocd_redis_request_duration_seconds_*`）与旧版（`argocd_redis_request_duration_*`）指标由不同组件上报，P95 面板用两条线分别呈现，不能直接相加或合并。
+- **Nginx Upstream 指标口径**：数据来自 nginx 侧健康检查脚本经 Pushgateway 上报的 `nginx_upstream_status`，值恒为 1，在线与否由 `status` 标签表达（判据 `up|UP|1|true`）。该指标只有健康状态，没有权重、响应时间、请求数与连接数，性能分析请用 Nginx VTS 仪表盘。
+- **Nginx Upstream 采集健康**：Pushgateway 会永久保留最后一次推送的值、抓取时只刷新样本时间戳，因此 `nginx_upstream_status` 永远「看起来是新的」。判断推送是否还在继续必须看 Pushgateway 自带的 `push_time_seconds`（面板「推送组最后推送距今」），它单调上涨即代表脚本已停止上报。
+- **Nginx Upstream 离线语义**：后端离线由主动健康检查判定，存在 1~2 个检查周期延迟，短时抖动表现为离线数尖峰后回落；整条 upstream 被删除或实例改名不会记为离线，而是让「后端总数」下降，需与采集健康分区结合判断。
+- **Kafka 汇总口径**：`kafka_server_brokertopicmetrics_*` 同时提供 `topic=""` 的 All Topics 聚合序列与逐 Topic 序列，集群汇总卡片与按 Broker 曲线只用 `topic=""`，按 Topic 下钻才用 `topic!=""`——两者相加会把数值放大一倍。`GlobalTopicCount` 由每个 Broker 都上报，Topic 总数必须取 `max` 而非 `sum`。
+- **Kafka 延迟指标**：`kafka_network_requestmetrics_totaltimems` 本身就是分位毫秒值（由 `quantile` 标签区分 p99/p999），直接用取值，不能再套 `rate`/`increase`；不同 jmx_exporter 配置下该标签可能写作 `0.99` 或 `99`，故查询用 `quantile=~"0.99|99"` 兼容两种形式。
+- **Kafka 线程饱和度**：`networkprocessoravgidlepercent` 与 `requesthandleravgidlepercent` 原值是 0~1 的比例，乘 100 才是百分比，面板展示的是「占用率 = 100 − 空闲率×100」，越低越空闲。请求处理线程饱和通常先由磁盘写入跟不上引起，不要一味加线程数。
+- **Kafka 空态语义**：失败请求、ISR 抖动、ZooKeeper 断连等面板在健康时为空（或恒为 0）属正常，不要当成采集故障；KRaft 模式集群没有 ZooKeeper 相关序列，对应面板为空亦属正常。
+- **Kafka 覆盖范围**：本仪表盘覆盖 Broker 侧与 JVM 侧指标，不含消费组积压（consumer group lag）——该指标由 Kafka Exporter 的 `kafka_consumergroup_lag` 提供，jmx_exporter 无此数据，需在消费侧或 kminion 单独采集。
+- **SQL Server 计数器与 gauge 区分**：`mssql_deadlocks`、`mssql_user_errors`、`mssql_kill_connection_errors`、`mssql_batch_requests`、`mssql_lock_waits`、`mssql_page_fault_count`、`mssql_log_growths`、`mssql_io_stall_total_seconds`、`mssql_wait_stats` 均为自启动累计值，必须用 `rate`/`increase`；而 `mssql_connections`、`mssql_blocking_sessions`、`mssql_long_running_queries`、`mssql_resident_memory_bytes`、`mssql_virtual_memory_bytes`、`mssql_page_life_expectancy_seconds`、`mssql_buffer_cache_hit_ratio_percent`、`mssql_log_space_used_percent`、`mssql_tempdb_space_used_mb`、`mssql_cpu_usage_percent`、`mssql_memory_utilization_percentage` 是瞬时 gauges，直接取值，套 rate 会得到无意义的锯齿。
+- **SQL Server 等待类型口径**：`mssql_wait_stats{stat="wait_time_ms"}` 与 `{stat="waiting_tasks_count"}` 是同一 `wait_type` 下的两个维度，平均等待时长按 `increase(等待毫秒)/increase(等待次数)` 计算，累计影响面按 `increase(等待毫秒)` 排序；两者都只保留窗口内确实发生等待的类型（分母为 0 的类型剔除），避免空序列干扰 TopN 排名。
+- **SQL Server 内存与页文件**：`mssql_os_memory` 与 `mssql_os_page_file` 都按 `state` 标签拆成 `used`/`available` 两条序列，总量需在面板内另行求和，指标本身不提供 total；`mssql_memory_utilization_percentage` 是工作集占已提交内存的比例，不是整机内存使用率。
+- **SQL Server 多实例**：`instance` 是 exporter 端点（IP:端口），`db` 是库名，同名库可能出现在多台实例上；因此按库的聚合与明细表一律同时按 `instance` 分组，避免跨实例求和。
+- **ZooKeeper 副本一致性**：ZK 各副本的数据完全相同，`znode_count`、`ephemerals_count`、`global_sessions`、`approximate_data_size` 等集群级指标在每台机器上都上报同一个值，汇总必须取 `max`，取 `sum` 会按副本数翻倍；`num_alive_connections`、`watch_count` 是各节点自己的量，才需要按实例求和或对比。
+- **ZooKeeper 计数器与 gauge**：`packets_sent`/`packets_received` 在 ZK 指标端点上虽被声明为 gauge，语义却是自启动起的累计量，必须用 `rate`；`snap_count`、`commit_count`、`proposal_count`、`dead_watchers_*`、`outstanding_changes_*`、`request_commit_queued`、`tls_handshake_exceeded`、`auth_failed_count` 等同样是累计量。反观 `watch_count`、`outstanding_requests`、`max_latency`、`open_file_descriptor_count`、`last_proposal_size` 等是瞬时值，套 `rate` 只会得到无意义锯齿。
+- **ZooKeeper 耗时指标**：`fsynctime`、`readlatency`、`proposal_latency`、`*_queue_time_ms` 等由 Summary 型数据导出，同时提供 `_sum` 与 `_count`，单次平均耗时 = `rate(_sum) / rate(_count)`（窗口 10m）；直接对 `_sum` 取 rate 得到的是「每秒累计毫秒」（吞吐×耗时），数值含义不同。
+- **ZooKeeper 空闲时段不能整段丢数据**：这类 Summary 指标在业务空闲时窗口内没有新观测，`rate(_count)` 为 0。若把分母写成 `(rate(_count) > 0)` 这样的比较过滤，PromQL 会**把该时间点整条序列丢弃**，低频面板（选主耗时、fsync、快照、Observer Master、空池等待等）就会在空闲期整段 No data，看起来像采集故障。正确写法是 `clamp_min(rate(_count), 1e-9)`，分子为 0 时输出 0，曲线保持连续；判断「有没有选主」应看曲线是否抬升，而不是看有没有线。
+- **ZooKeeper 命名空间维度**：`read_per_namespace` / `write_per_namespace` 是 SummarySet，标签名固定为 `key`（不是 `namespace`），值为 ZK 内的命名空间路径；同名标签在 `learner_handler_qp_size`（值却是 learner 地址）里也复用，聚合时按 `key` 分组即可。**注意观测值是字节数而非操作次数**：`DataTree` 里读记响应体 `totalBytes`、写记 `path.length() + 数据长度`，所以面板单位是 Bps / 字节，按它排名得到的是「哪个命名空间数据量最大」，不能当作 QPS。
+- **ZooKeeper 选主类指标**：`learners`、`synced_followers`、`synced_observers`、`pending_syncs`、`leader_uptime`、`last/max/min_proposal_size` 只有 Leader 上报，非 Leader 为空属正常；`looking_count` 出现尖峰且 `leader_uptime` 归零即代表发生了一次重新选主。
+- **ZooKeeper JVM 指标来源**：ZK 3.6+ 的 `PrometheusMetricsProvider` 默认 `exportJvmInfo=true`，会在同一端点暴露 `jvm_memory_*`、`jvm_gc_*`、`jvm_threads_*` 等；若关闭该开关或使用旧版本，需要同机 jmx_exporter javaagent 补齐。优化版对两条链路取并集（`or` 后 `max` 去重），并分别绑定「实例」与「JVM 实例」变量，任一侧有数据即可出图。
 
 ## 使用方式
 
@@ -120,29 +148,47 @@ opsmonitor/
     ├── elasticsearch/
     │   ├── elasticsearch.json                  # 社区原版
     │   └── elasticsearch-optimized.json        # 优化版（推荐）
+    ├── esxi/
+    │   ├── esxi.json                           # 社区原版
+    │   └── esxi-optimized.json                 # 优化版（推荐）
     ├── iis/
     │   ├── IIS.json                            # 社区原版
     │   └── iis-optimized.json                  # 优化版（推荐）
+    ├── kafka/
+    │   ├── kafka.json                          # 社区原版
+    │   └── kafka-optimized.json                # 优化版（推荐）
     ├── linux/
     │   ├── Linux.json                          # 社区原版
     │   └── linux-optimized.json                # 优化版（推荐）
+    ├── lvs/
+    │   ├── lvs.json                            # 社区原版
+    │   └── lvs-optimized.json                  # 优化版（推荐）
     ├── mysql/
     │   ├── mysql.json                          # 社区原版
     │   └── mysql-optimized.json                # 优化版（推荐）
     ├── nginx/
     │   ├── Nginx.json                          # 社区原版
-    │   └── nginx-optimized.json                # 优化版（推荐）
+    │   └── nginx-optimized.json                # 优化版
+    ├── nginx_upstream/
+    │   ├── nginx_upstream.json                 # 社区原版
+    │   └── nginx_upstream-optimized.json       # 优化版（推荐）（推荐）
     ├── rabbitmq/
     │   ├── RabbitMQ.json                       # 社区原版
     │   └── rabbitmq-optimized.json             # 优化版（推荐）
     ├── redis/
     │   ├── redis.json                          # 社区原版
     │   └── redis-optimized.json                # 优化版（推荐）
+    ├── sqlserver/
+    │   ├── sqlserver.json                      # 社区原版
+    │   └── sqlserver-optimized.json            # 优化版（推荐）
     ├── windows/
     │   ├── Windows.json                        # 社区原版（windows_exporter）
     │   ├── windows-optimized.json              # 优化版（windows_exporter）
     │   ├── Windows2003.json                    # 源表参考
     │   └── windows-wmi-optimized.json          # 优化版（wmi_exporter 0.7/0.8）
+    ├── zookeeper/
+    │   ├── zookeeper.json                      # 社区原版
+    │   └── zookeeper-optimized.json            # 优化版（推荐）
     └── k8s/
         ├── argocd/
         │   ├── argocd.json                      # 社区原版

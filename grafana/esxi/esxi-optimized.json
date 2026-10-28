@@ -1,0 +1,4543 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "VMware ESXi 单机监控，数据源为 vCenter / ESXi 上的 vmware_exporter（job=vmware_exporter，30s 抓取）。指标口径与适配说明：1) 主机、虚拟机指标自带上报标签 host_name / vm_name，节点过滤统一用 host_name=~\"$esxhost\"；数据存储指标（vmware_datastore_*）没有 host_name 标签，只有 ds_name / dc_name / ds_cluster，本环境靠 Consul 服务元数据注入的 app 标签（值即 ESXi 主机名）定位，因此数据存储类查询统一写 app=~\"$esxhost\"，直接拿 host_name 过滤数据存储必然无数据。2) 使用率换算：vmware_host_cpu_usage / memory_usage 为 MHz 与 MB 的绝对量，使用率 = 用量 ÷ 总量；而 vmware_vm_cpu_usage_average / vmware_vm_mem_usage_average 上报的是「1/100 百分比」（原始 574 即 5.74%），虚拟机相关面板统一除以 100 还原为真实百分比，100% 表示占满该虚机自身配额。3) 主机性能指标（*_average / *_summation）均取 vCenter 每 20s 采样的最近一个样本；summation 是该窗口内的毫秒累计值，不是累计计数器，不要套 rate/increase。等待类面板按「100 × 毫秒 ÷ (20000ms × 物理核数)」换算为占整机算力百分比。4) 带宽/吞吐单位：vmware_host_net_bytes*_average、vmware_host_disk_*_average、vmware_vm_disk_usage_average、vmware_vm_net_*_average 原始单位都是 KB/s；主机内存类（mem.*）与 VM 的 mem_consumed/active 为 KB；datastore_*_size 为字节；memory_max 为 MB。5) 数据存储与共享卷会被多台主机重复上报，容量/可用率/虚机数等一律按 ds_name 聚合去重后再计算，避免 All 模式下同一卷出现多组曲线与重复行；同理各表格查询只按主键 + 唯一提供该字段的那一条查询保留标签，防止每个指标都带出一整套重复的标签列。6) count 类卡片用「无匹配序列时取 0、但对象整体缺失时保持空」的写法，既不会因条件全不满足而 No data，也不会在采集断链时误报 0 掩盖故障。7) 硬件传感器 state：0=红 / 1=黄 / 2=绿 / 3=未知，redundancy：1=正常 / 0=失效。8) 布局为五个分区：概览（8 张 w3 卡片 + 主机信息表）、主机资源、数据存储、虚拟机、硬件传感器，成对面板一律 w12×2，图例统一表格化展示 Min/Max/Current。范围说明：本仪表盘面向单台 ESXi 主机（可多选汇总），不含 vCenter 集群级 DRS/HA 与 vSAN 容量指标。",
+  "editable": true,
+  "gnetId": 10076,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "主机健康与规模一览：采集连通性、电源、CPU/内存使用率、运行中虚拟机、数据存储最低可用率、异常硬件传感器与快照总数（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "panels": [],
+      "title": "主机概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "vmware_exporter 抓取状态（up{job=\"vmware_exporter\"} 取最小值）：1=正常、0=失联。该 job 下每个采集目标对应一台 ESXi，任一台掉线卡片即变红，同时其主机/数据存储/虚拟机指标全部中断；若卡片为红但曲线仍有数据，多半是目标被移除后 up 序列残留，可到 Prometheus Targets 页核对。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 101,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "min(up{job=\"vmware_exporter\"}) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "up",
+          "refId": "A"
+        }
+      ],
+      "title": "Exporter 状态",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选主机电源状态（vmware_host_power_state 取最小值）：1=已开机、0=关机或待机。关机主机不再上报 CPU、内存、boot 等序列，因此本卡片变红时下游主机资源面板必然无数据，属于预期而不是面板故障。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "from": "",
+              "id": 0,
+              "text": "关机",
+              "to": "",
+              "type": 1,
+              "value": "0"
+            },
+            {
+              "from": "",
+              "id": 1,
+              "text": "开机",
+              "to": "",
+              "type": 1,
+              "value": "1"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 102,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "min(vmware_host_power_state{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "电源",
+          "refId": "A"
+        }
+      ],
+      "title": "主机电源状态",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "主机 CPU 使用率 = overallCpuUsage ÷ (numCpuCores × cpuMhz) × 100，即虚拟机已消耗的 MHz 占物理总 MHz 的比例（多选主机时为整体加权值）。50% 黄、80% 红；持续高于 80% 时看「CPU 就绪与限流」判断是超分排队还是真实算力不足。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 103,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(vmware_host_cpu_usage{host_name=~\"$esxhost\"}) / clamp_min(sum(vmware_host_cpu_max{host_name=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "CPU",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU 使用率",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "主机内存使用率 = overallMemoryUsage ÷ memorySize × 100。ESXi 会把气球回收与透明页共享计入已用，长期 70% 左右不一定异常；接近 90% 且「内存气球与交换」出现换入换出，说明物理内存已不足，需要扩容或迁移虚机。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 104,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(vmware_host_memory_usage{host_name=~\"$esxhost\"}) / clamp_min(sum(vmware_host_memory_max{host_name=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "内存",
+          "refId": "A"
+        }
+      ],
+      "title": "内存使用率",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "当前电源为 poweredOn 的虚拟机数量（count(vmware_vm_power_state == 1)）。数值骤降通常是虚机被关闭或热迁移到别的宿主机；为 0 时先确认主机电源与 vCenter 连接状态，再看「虚拟机总览」表是否整体为空。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 105,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(vmware_vm_power_state{host_name=~\"$esxhost\"} == 1) or (count(vmware_vm_power_state{host_name=~\"$esxhost\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "运行中",
+          "refId": "A"
+        }
+      ],
+      "title": "运行中虚拟机",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选主机可见数据存储中最紧的剩余空间占比（对 freespace/capacity 取 min，而不是平均）。取 min 是为了让最快的那个卷立刻暴露：低于 20% 黄、低于 10% 红，需尽快扩容或迁移虚机；共享存储被多台主机挂载时按 ds_name 去重后再取 min，不会因重复序列而失真。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 10
+              },
+              {
+                "color": "green",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 106,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "min(100 * max by (ds_name) (vmware_datastore_freespace_size{app=~\"$esxhost\"}) / clamp_min(max by (ds_name) (vmware_datastore_capacity_size{app=~\"$esxhost\"}), 1))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最低可用率",
+          "refId": "A"
+        }
+      ],
+      "title": "存储最低可用率",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "状态为红(0)或黄(1)的硬件传感器数量。ESXi 通过 numericSensorInfo 上报 CPU/内存/风扇/温度/电压/电流/功率等传感器，0=红、1=黄、2=绿、3=未知；大于 0 表示存在硬件健康告警，请到最下方「硬件传感器」区按传感器名称定位具体部件。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 107,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(vmware_host_sensor_state{host_name=~\"$esxhost\"} < 2) or (count(vmware_host_sensor_state{host_name=~\"$esxhost\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "异常传感器",
+          "refId": "A"
+        }
+      ],
+      "title": "异常硬件传感器",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选主机上所有虚拟机的快照总数（sum(vmware_vm_snapshots)）。快照长期堆积会持续占用数据存储并显著拖慢磁盘 IO；大于 0 时到「虚拟机」分区看「虚拟机快照」面板确认是哪几台机器，再逐台清理。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 108,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(vmware_vm_snapshots{host_name=~\"$esxhost\"}) or (count(vmware_vm_snapshots{host_name=~\"$esxhost\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "快照数",
+          "refId": "A"
+        }
+      ],
+      "title": "快照总数",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "所选主机的静态信息与即时状态一表总览：型号、CPU 型号、ESXi 版本与 build、CPU 核数、CPU/内存的用量与总量、两个使用率、连接状态、维护模式、运行时长、数据中心与集群。多选主机时每台一行，按 host_name 合并各指标。为避免每个指标都带出一套重复的标签列，只有「数据中心+集群、连接状态、版本+Build、型号+CPU型号」四类字段由各自的唯一查询提供，其余查询一律只按 host_name 聚合，因此表中每个字段只出现一次。连接状态取 vmware_host_connection_state 的 state 标签（connected / disconnected / notResponding）；关机主机会缺少 CPU、内存与运行时长列，属正常现象。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "主机"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "集群"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "数据中心"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "型号"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU型号"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 240
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "版本"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Build"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "连接状态"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "电源"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 0,
+                    "text": "关机",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "开机",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "维护模式"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 0,
+                    "text": "正常",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "维护中",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "运行时长"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdhms"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU核数"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU已用MHz"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU总量MHz"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU使用率"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存已用MB"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mbytes"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存总量MB"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mbytes"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存使用率"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 110,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, dc_name, cluster_name) (vmware_host_power_state{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, state) (vmware_host_connection_state{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_maintenance_mode{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (time() - vmware_host_boot_timestamp_seconds{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, version, build) (vmware_host_product_info{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, hardware_model, hardware_cpu_model) (vmware_host_hardware_info{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "F"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_num_cpu{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "G"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_cpu_usage{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "H"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_cpu_max{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "I"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_memory_usage{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "J"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_memory_max{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "K"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (host_name) (vmware_host_cpu_usage{host_name=~\"$esxhost\"}) / clamp_min(max by (host_name) (vmware_host_cpu_max{host_name=~\"$esxhost\"}), 1)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "L"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (host_name) (vmware_host_memory_usage{host_name=~\"$esxhost\"}) / clamp_min(max by (host_name) (vmware_host_memory_max{host_name=~\"$esxhost\"}), 1)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "M"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "主机信息",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "host_name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #B": true,
+              "Value #E": true,
+              "Value #F": true,
+              "__name__": true,
+              "app": true,
+              "env": true,
+              "instance": true,
+              "job": true,
+              "project": true,
+              "team": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "电源",
+              "Value #C": "维护模式",
+              "Value #D": "运行时长",
+              "Value #G": "CPU核数",
+              "Value #H": "CPU已用MHz",
+              "Value #I": "CPU总量MHz",
+              "Value #J": "内存已用MB",
+              "Value #K": "内存总量MB",
+              "Value #L": "CPU使用率",
+              "Value #M": "内存使用率",
+              "build": "Build",
+              "dc_name": "数据中心",
+              "hardware_cpu_model": "CPU型号",
+              "hardware_model": "型号",
+              "host_name": "主机",
+              "state": "连接状态",
+              "version": "版本",
+              "cluster_name": "集群"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "主机资源：CPU/内存使用率、CPU 就绪与限流、内存气球与交换、网络吞吐、磁盘读写（成对 w12 排列）。网络与磁盘单位为 KB/s，等待类指标已换算为「占整机算力百分比」，可直接与使用率同轴比较。",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 20,
+      "panels": [],
+      "title": "主机资源 Host Resource",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按主机拆分的 CPU 使用率（overallCpuUsage ÷ 物理总 MHz × 100），多选主机时逐台对比。台阶式抬升常见于批量开机或迁移入本机；曲线贴近 100% 即物理算力耗尽，此时「CPU 就绪」会同步抬升。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "hiddenSeries": false,
+      "id": 201,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * vmware_host_cpu_usage{host_name=~\"$esxhost\"} / clamp_min(vmware_host_cpu_max{host_name=~\"$esxhost\"}, 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机 CPU 使用率",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "使用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按主机拆分的物理内存使用率（overallMemoryUsage ÷ memorySize × 100）。该值包含虚拟机预留与实际占用，不含 ESXi 自身内核开销；多台主机同时逼近 90% 时应检查是否可通过气球或迁移释放压力。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "hiddenSeries": false,
+      "id": 202,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * vmware_host_memory_usage{host_name=~\"$esxhost\"} / clamp_min(vmware_host_memory_max{host_name=~\"$esxhost\"}, 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机内存使用率",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "使用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "三个从 vCenter 性能计数器采来的等待类指标（cpu.ready / cpu.costop / cpu.swapwait 的 summation），均为 20s 采样窗内、整机全部 vCPU 累加的毫秒数。面板按「100 × 毫秒数 ÷ (20000ms × 物理核数)」换算为「占整机物理算力的百分比」，因此可与上面的「主机 CPU 使用率」放在同一把尺子上比较，也能跨机型对比。就绪（ready）高=虚机排队等物理核，多见于 vCPU 超分；限流（Co-Stop）高=多 vCPU 虚机同步等待；交换等待（swapwait）高=内存换页拖累 CPU。判读参考：健康主机的就绪通常远低于 1%；持续高于 1% 说明已有明显争抢，高于 5% 属严重超分，需要调整 vCPU 配比或迁移虚机。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 203,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (host_name) (vmware_host_cpu_ready_summation{host_name=~\"$esxhost\"}) / clamp_min(20000 * max by (host_name) (vmware_host_num_cpu{host_name=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 就绪等待",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (host_name) (vmware_host_cpu_costop_summation{host_name=~\"$esxhost\"}) / clamp_min(20000 * max by (host_name) (vmware_host_num_cpu{host_name=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 限流 Co-Stop",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (host_name) (vmware_host_cpu_swapwait_summation{host_name=~\"$esxhost\"}) / clamp_min(20000 * max by (host_name) (vmware_host_num_cpu{host_name=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 交换等待",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "CPU 就绪与限流",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "percent",
+          "label": "占整机算力",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "内存压力三件套（单位 KB，取自 vCenter 20s 采样）：气球回收（vmmemctl）=ESXi 强制向虚机回收的物理内存；换入/换出=与该主机交换文件之间的读写量。三条线正常态应贴 0：气球持续增长说明宿主机在自救式回收内存，一旦出现换入换出，虚机性能会明显抖动，应立即扩容或迁移。本面板刻意不放「活跃内存」——它通常是几十 GB 的量级，与压力类指标同轴会把曲线压成一条平线；要看活跃内存请到上面的「主机内存使用率」对照总量与用量。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 204,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_mem_vmmemctl_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 气球回收",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_mem_swapin_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 换入",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name) (vmware_host_mem_swapout_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 换出",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "内存气球与交换",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "kbytes",
+          "label": "内存量",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "主机网卡收发速率（net.bytesRx/Tx.average，单位为 KB/s），按主机拆分。注意这是 vmnic 侧汇总吞吐，包含虚拟交换机上所有虚机与本机管理流量；与「虚拟机网络」面板对比可看出是否有非虚拟机的流量占用带宽。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "hiddenSeries": false,
+      "id": 205,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "vmware_host_net_bytesRx_average{host_name=~\"$esxhost\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 接收",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "vmware_host_net_bytesTx_average{host_name=~\"$esxhost\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 发送",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机网络吞吐",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "KBs",
+          "label": "吞吐",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "主机存储侧读写速率（disk.read/write.average，KB/s），包含所有数据存储与本地盘的 IO。读高写低多为启动/加载类负载；写入持续高且「数据存储可用率」快速下降需排查是否有备份、快照或日志写入；读写都贴近 0 而虚机有业务流量时，检查是否走了 NFS 之外的外部存储。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "hiddenSeries": false,
+      "id": 206,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "vmware_host_disk_read_average{host_name=~\"$esxhost\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 读",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "vmware_host_disk_write_average{host_name=~\"$esxhost\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host_name}} 写",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机磁盘读写",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "KBs",
+          "label": "吞吐",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "数据存储：容量与已用、可用率、虚拟机与主机数量分布，以及含类型/可访问性/维护模式的状态表（数据存储指标无 host_name 标签，统一用 app 标签定位主机）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 30,
+      "panels": [],
+      "title": "数据存储 Datastore",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个数据存储的总量、已用、可用与已置备空间（bytes）。总量是数据存储容量上限（不含 thin 超分），已置备是虚机磁盘声明大小之和——已置备远大于总量说明超分严重，一旦虚机写满会触发「数据存储空间不足」并可能暂停虚机。多选主机时同一共享存储会被多个 app 重复上报，因此各查询统一用 max by (ds_name) 按卷去重，同一卷只出现一组曲线；只看单台主机时可在顶部变量里收窄。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "hiddenSeries": false,
+      "id": 301,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_capacity_size{app=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ds_name}} 总量",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_capacity_size{app=~\"$esxhost\"}) - max by (ds_name) (vmware_datastore_freespace_size{app=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ds_name}} 已用",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_freespace_size{app=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ds_name}} 可用",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_provisoned_size{app=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ds_name}} 已置备",
+          "refId": "D"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "数据存储容量与已用",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "bytes",
+          "label": "容量",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个数据存储的剩余空间占比（freespace ÷ capacity × 100），红色虚线 10%、橙色虚线 20% 为告警参考线。ESXi 在剩余空间低于 10% 时会合并快照、暂停虚机，因此该曲线是容量预警的第一入口；下降斜率突然变陡多为快照或备份写入。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "hiddenSeries": false,
+      "id": 302,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (ds_name) (vmware_datastore_freespace_size{app=~\"$esxhost\"}) / clamp_min(max by (ds_name) (vmware_datastore_capacity_size{app=~\"$esxhost\"}), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ds_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": false,
+          "line": true,
+          "op": "lt",
+          "value": 10,
+          "yaxis": "left"
+        },
+        {
+          "colorMode": "warning",
+          "fill": false,
+          "line": true,
+          "op": "lt",
+          "value": 20,
+          "yaxis": "left"
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "数据存储可用率",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "可用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "每个数据存储上驻留的虚拟机数量、挂载它的主机数量，以及该卷占全部虚机数的比例。本面板为瞬时快照表（不是趋势图）：虚机数与主机数直接取 vmware_datastore_vms / vmware_datastore_hosts 的当前值，单位是「个」，不做任何换算；占比 = 本卷虚机数 ÷ 所选主机的虚机总数（按 ds_name 去重后求和，不会因共享存储重复上报而翻倍）。虚机数远高于其它卷说明该存储是热点卷，IO 与容量风险集中；主机数为 1 的通常是本地盘，不具备 HA 迁移能力，维护前必须手工迁移虚机。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "数据存储"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 240
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "虚机数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 40
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "主机数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "虚机占比"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 303,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "虚机数"
+          }
+        ]
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_vms{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_hosts{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (ds_name) (vmware_datastore_vms{app=~\"$esxhost\"}) / scalar(clamp_min(sum(max by (ds_name) (vmware_datastore_vms{app=~\"$esxhost\"})), 1))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "数据存储虚机分布",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "ds_name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "app": true,
+              "dc_name": true,
+              "ds_cluster": true,
+              "env": true,
+              "instance": true,
+              "job": true,
+              "project": true,
+              "team": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "虚机数",
+              "Value #B": "主机数",
+              "Value #C": "虚机占比",
+              "ds_name": "数据存储"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "数据存储状态表（每卷一行）：容量、可用率、已置备、类型（VMFS/NFS/VSAN 等，取自 ds_type 标签）、可访问性、维护模式（mode 标签，normal/enteringMaintenance/inMaintenance）。按 ds_name 合并，除「数据中心 / 类型 / 维护模式」各由唯一一条查询提供外，其余查询只按 ds_name 聚合，每个字段只出现一次；虚机数与主机数已移至左侧「数据存储虚机分布」表，避免重复。可访问=不可访问通常意味着 NFS 服务端断连或光纤链路异常，此时相关虚机会挂起，属最高优先级故障。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "数据存储"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "集群"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "数据中心"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "容量"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "已置备"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "可用率"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 10
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "类型"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "维护模式"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "可访问"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 0,
+                    "text": "不可访问",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "可访问",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 304,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name, dc_name, ds_cluster) (vmware_datastore_capacity_size{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * max by (ds_name) (vmware_datastore_freespace_size{app=~\"$esxhost\"}) / clamp_min(max by (ds_name) (vmware_datastore_capacity_size{app=~\"$esxhost\"}), 1)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "min by (ds_name) (vmware_datastore_accessible{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name, mode) (vmware_datastore_maintenance_mode{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name, ds_type) (vmware_datastore_type{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (ds_name) (vmware_datastore_provisoned_size{app=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "F"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "数据存储状态",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "ds_name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #D": true,
+              "Value #E": true,
+              "__name__": true,
+              "app": true,
+              "env": true,
+              "instance": true,
+              "job": true,
+              "project": true,
+              "team": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "容量",
+              "Value #B": "可用率",
+              "Value #C": "可访问",
+              "Value #F": "已置备",
+              "dc_name": "数据中心",
+              "ds_name": "数据存储",
+              "ds_type": "类型",
+              "mode": "维护模式",
+              "ds_cluster": "集群"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "虚拟机：状态总览表、CPU/内存/磁盘/网络 Top10、磁盘可用率与快照",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 40,
+      "panels": [],
+      "title": "虚拟机 Virtual Machine",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "虚拟机状态总览，按虚拟机名合并各指标：电源、vCPU、内存配额、CPU%、内存%、磁盘吞吐、网络收发、Tools 状态、快照数、运行时长、最低磁盘可用率、所在主机与数据存储。为避免每个指标都带出一套重复的标签列，「主机 / 数据存储 / Tools 状态」三个字段各由唯一一条查询提供，其余查询只按 vm_name 聚合，每个字段只出现一次。CPU% 与内存% 已按 vmware_vm_cpu_usage_average / vmware_vm_mem_usage_average 的原始口径除以 100（该计数器以 1/100 百分比为单位，原始 574 即 5.74%）。关机虚机的性能类列为空属预期；最低磁盘可用率取 guest 内各分区的最小值，低于 10% 需先清理日志或扩容。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "虚拟机"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "主机"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "数据存储"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "电源"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 0,
+                    "text": "关机",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "运行",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vCPU"
+            },
+            "properties": [
+              [
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "decimals",
+                  "value": 0
+                }
+              ],
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存配额"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mbytes"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU%"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 70
+                    },
+                    {
+                      "color": "red",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存%"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 85
+                    },
+                    {
+                      "color": "red",
+                      "value": 95
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "磁盘KB/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "KBs"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "接收KB/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "KBs"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "发送KB/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "KBs"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tools"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "快照"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 3
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "运行时长"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdhms"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "最低磁盘可用%"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 10
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 401,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name, host_name, ds_name) (vmware_vm_power_state{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_num_cpu{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_memory_max{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_cpu_usage_average{host_name=~\"$esxhost\"}) / 100",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_mem_usage_average{host_name=~\"$esxhost\"}) / 100",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_disk_usage_average{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "F"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_net_received_average{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "G"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_net_transmitted_average{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "H"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name, tools_status) (vmware_vm_guest_tools_running_status{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "I"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_snapshots{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "J"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (time() - vmware_vm_boot_timestamp_seconds{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "K"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "min by (vm_name) (100 * vmware_vm_guest_disk_free{host_name=~\"$esxhost\"} / clamp_min(vmware_vm_guest_disk_capacity{host_name=~\"$esxhost\"}, 1))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "L"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (vm_name) (vmware_vm_template{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "M"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "虚拟机总览",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "vm_name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #I": true,
+              "Value #M": true,
+              "__name__": true,
+              "app": true,
+              "cluster_name": true,
+              "dc_name": true,
+              "env": true,
+              "instance": true,
+              "job": true,
+              "project": true,
+              "team": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "电源",
+              "Value #B": "vCPU",
+              "Value #C": "内存配额",
+              "Value #D": "CPU%",
+              "Value #E": "内存%",
+              "Value #F": "磁盘KB/s",
+              "Value #G": "接收KB/s",
+              "Value #H": "发送KB/s",
+              "Value #J": "快照",
+              "Value #K": "运行时长",
+              "Value #L": "最低磁盘可用%",
+              "ds_name": "数据存储",
+              "host_name": "主机",
+              "tools_status": "Tools",
+              "vm_name": "虚拟机"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按虚拟机展示 CPU 使用率 Top10。数值口径：vmware_vm_cpu_usage_average 是 vCenter 上报的「1/100 百分比」，面板已除以 100 还原为百分比，100% 表示占满该虚机的全部 vCPU 配额（32 核虚机的 100% = 32 个物理核的算力），因此单台虚机不会出现几百上千的读数。Top10 取所选时间窗内的即时排名，避免虚机多时序列爆炸；某台长期贴近 100% 但主机整体不高，多为该虚机 vCPU 数不足以跑满业务线程。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "hiddenSeries": false,
+      "id": 402,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (vm_name) (vmware_vm_cpu_usage_average{host_name=~\"$esxhost\"}) / 100)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机 CPU 使用率 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "使用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按虚拟机展示内存使用率 Top10。数值口径：vmware_vm_mem_usage_average 同样是「1/100 百分比」，面板已除以 100 还原，100% 表示用满该虚机的内存配额（与「内存配额」列可直接对照）。这是 VMware 的活跃工作集占比，虚机内的页缓存不会全部计入；占比长期接近 100% 且主机内存压力大时，应下调配额或迁移。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "hiddenSeries": false,
+      "id": 403,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (vm_name) (vmware_vm_mem_usage_average{host_name=~\"$esxhost\"}) / 100)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机内存使用率 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "使用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按虚拟机展示磁盘吞吐 Top10（disk.usage.average，源单位 KB/s，自动换档显示）。该值是虚机所有虚拟磁盘的合计吞吐。常读高的多为数据库或日志检索类负载；若某虚机吞吐明显高于其它且主机「磁盘读写」也同步抬升，是存储侧瓶颈的第一嫌疑对象。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "hiddenSeries": false,
+      "id": 404,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, vmware_vm_disk_usage_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机磁盘吞吐 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "KBs",
+          "label": "吞吐",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按虚拟机展示网络吞吐 Top10（net.received / net.transmitted 的 average，源单位 KB/s，面板用 Grafana 的 kB/s 单位自动换档为 MB/s 显示）。接收与发送各自独立取 Top10，因此同一虚机可能只出现在一侧：入向远大于出向通常是拉取型业务（备份、日志采集）；出向持续高且主机网卡接近打满时，需确认是否做了网卡绑定或分流。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 63
+      },
+      "hiddenSeries": false,
+      "id": 405,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, vmware_vm_net_received_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}} 接收",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, vmware_vm_net_transmitted_average{host_name=~\"$esxhost\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}} 发送",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机网络吞吐 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "KBs",
+          "label": "吞吐",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "取各虚拟机 guest 内分区剩余空间占比最小者排序（bottomk 10，图例带分区路径），用于定位磁盘最紧的虚机。同一分区的 bind mount 会在 guest.disk 里重复出现（容量与可用量相同），查询先用 max by (vm_name, partition) 按分区去重，图例不会出现重复项。该指标依赖 VMware Tools 上报 guest.disk，Tools 未运行或未安装的虚机不会出现在本图（可在「虚拟机总览」表按 Tools 状态核对）。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 70
+      },
+      "hiddenSeries": false,
+      "id": 406,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "bottomk(10, 100 * max by (vm_name, partition) (vmware_vm_guest_disk_free{host_name=~\"$esxhost\"}) / clamp_min(max by (vm_name, partition) (vmware_vm_guest_disk_capacity{host_name=~\"$esxhost\"}), 1))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}} {{partition}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机磁盘最小可用率",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "可用率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "只显示当前存在快照的虚拟机（vmware_vm_snapshots > 0），阶梯线可看出快照创建与清理的时刻。快照会保留磁盘增量链，长期存在会导致合并缓慢、IO 放大与容量膨胀；全部虚机无快照时本图为空属正常。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 70
+      },
+      "hiddenSeries": false,
+      "id": 407,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "vmware_vm_snapshots{host_name=~\"$esxhost\"} > 0",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{vm_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "虚拟机快照",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "快照数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "硬件传感器：状态（红/黄/绿/未知）与冗余状态，以及风扇转速、温度、电压、电流、功率读数",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "id": 50,
+      "panels": [],
+      "title": "硬件传感器 Sensors",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "主机硬件传感器状态（vmware_host_sensor_state，按传感器名称与类型展开）：0=红（故障）、1=黄（预警）、2=绿（正常）、3=未知。数值按色块着色，红/黄行即需要在 iLO/iDRAC 或物理侧跟进；未知(3)多为传感器被禁用或该部件不支持上报，不必立即处理。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "color-background"
+          },
+          "mappings": [
+            {
+              "from": "",
+              "id": 0,
+              "text": "红 · 故障",
+              "to": "",
+              "type": 1,
+              "value": "0"
+            },
+            {
+              "from": "",
+              "id": 1,
+              "text": "黄 · 预警",
+              "to": "",
+              "type": 1,
+              "value": "1"
+            },
+            {
+              "from": "",
+              "id": 2,
+              "text": "绿 · 正常",
+              "to": "",
+              "type": 1,
+              "value": "2"
+            },
+            {
+              "from": "",
+              "id": 3,
+              "text": "未知",
+              "to": "",
+              "type": 1,
+              "value": "3"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "dark-green",
+                "value": 2
+              },
+              {
+                "color": "dark-purple",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "类型"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "状态"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 78
+      },
+      "id": 501,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name, type) (vmware_host_sensor_state{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "硬件传感器状态",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "状态",
+              "host_name": "主机",
+              "name": "传感器",
+              "type": "类型"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "电源/风扇等部件的冗余状态（vmware_host_sensor_redundancy）：1=正常、0=失效。典型的电源冗余失效说明一路 PSU 掉线或输入断电，此时整机仍可运行但失去冗余，应尽快处理；主机未上报 redundancy 类传感器时本表为空属正常。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "color-background"
+          },
+          "mappings": [
+            {
+              "from": "",
+              "id": 0,
+              "text": "失效",
+              "to": "",
+              "type": 1,
+              "value": "0"
+            },
+            {
+              "from": "",
+              "id": 1,
+              "text": "正常",
+              "to": "",
+              "type": 1,
+              "value": "1"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "冗余"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 78
+      },
+      "id": 502,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_redundancy{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "传感器冗余状态",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "冗余",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "各风扇转速（vmware_host_sensor_fan，RPM）。同一机型不同槽位转速差异属正常，重点是「某一路明显偏低或为 0」——通常意味着风扇故障或未插到位；整机转速同时归零要怀疑 BMC 上报异常。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "rotrpm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "转速RPM"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1000
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 87
+      },
+      "id": 503,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_fan{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "风扇转速",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "转速RPM",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "进/出风口与 CPU、内存、主板温度（vmware_host_sensor_temperature，摄氏度）。60℃ 起黄、75℃ 起红：持续高温常见于风扇故障、机房空调异常或防尘网堵塞；读数在 30~55℃ 之间属正常区间。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "温度"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 60
+                    },
+                    {
+                      "color": "red",
+                      "value": 75
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 87
+      },
+      "id": 504,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_temperature{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "传感器温度",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "温度",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "主板与 CPU 供电电压（vmware_host_sensor_power_voltage，伏特）。电压偏离标称值（常见 0.9V/1.2V/3.3V/5V/12V）超过 ±10% 或长时间为 0，多为电源模块或供电背板异常，需结合冗余状态一起判断。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "volt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 94
+      },
+      "id": 505,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_power_voltage{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "传感器电压",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "电压",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "电源模块输出电流（vmware_host_sensor_power_current，安培）。同一路冗余的两块 PSU 电流应大致均衡；一路接近 0、另一路满载说明已单路运行，虽不影响业务但冗余已失效，应尽快更换电源。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "amp"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 94
+      },
+      "id": 506,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_power_current{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "传感器电流",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "电流",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "整机与部件功耗（vmware_host_sensor_power_watt，瓦特）。结合机房配电与 PDU 容量做上限评估：单机功耗持续抬升通常意味着负载加重或散热效率下降（风扇转速会同步升高）；多台主机同时抬升则更像机房环境温度问题。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "传感器"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 94
+      },
+      "id": 507,
+      "links": [],
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (host_name, name) (vmware_host_sensor_power_watt{host_name=~\"$esxhost\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "传感器功率",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "功率",
+              "host_name": "主机",
+              "name": "传感器"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "vmware",
+    "esxi",
+    "虚拟化"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(vmware_host_power_state, host_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "ESXi 主机",
+        "multi": true,
+        "name": "esxhost",
+        "options": [],
+        "query": "label_values(vmware_host_power_state, host_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "ESXi (Optimized)",
+  "uid": "esxi-opt-10076",
+  "version": 1
+}

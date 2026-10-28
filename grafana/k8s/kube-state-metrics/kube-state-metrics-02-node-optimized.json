@@ -270,6 +270,25 @@
                     }
                   ]
                 }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "id": 0,
+                    "op": "=",
+                    "text": "未就绪",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "id": 1,
+                    "op": "=",
+                    "text": "就绪",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
               }
             ]
           },
@@ -294,6 +313,25 @@
                     }
                   ]
                 }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "id": 0,
+                    "op": "=",
+                    "text": "正常",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "id": 1,
+                    "op": "=",
+                    "text": "有压力",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
               }
             ]
           },
@@ -318,6 +356,25 @@
                     }
                   ]
                 }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "id": 0,
+                    "op": "=",
+                    "text": "正常",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "id": 1,
+                    "op": "=",
+                    "text": "有压力",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
               }
             ]
           },
@@ -342,6 +399,25 @@
                     }
                   ]
                 }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "id": 0,
+                    "op": "=",
+                    "text": "正常",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "id": 1,
+                    "op": "=",
+                    "text": "有压力",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
               }
             ]
           },
@@ -366,6 +442,25 @@
                     }
                   ]
                 }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "id": 0,
+                    "op": "=",
+                    "text": "可调度",
+                    "type": 1,
+                    "value": "0"
+                  },
+                  {
+                    "id": 1,
+                    "op": "=",
+                    "text": "不可调度",
+                    "type": 1,
+                    "value": "1"
+                  }
+                ]
               }
             ]
           }
@@ -477,7 +572,72 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存请求"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "内存可分配"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU请求(核)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU可分配(核)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 10,

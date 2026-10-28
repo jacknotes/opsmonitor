@@ -1,0 +1,2039 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Nginx upstream 后端健康监控，数据来自 nginx 侧的上游健康检查脚本经 Pushgateway 上报的 nginx_upstream_status 指标：每个后端各一条序列，值恒为 1，在线与否由 status 标签表达。指标口径说明：1) 在线判据为 status 取值 up（兼容 UP / 1 / true 三种写法），其余取值一律视为离线，原始状态文本可在「后端状态明细」中核对；2) 该指标只提供健康状态，没有权重、响应时间、请求数与连接数，因此本仪表盘不做性能下钻，请求量/延迟/流量分析请看 Nginx VTS 仪表盘；3) 后端被判定离线由主动健康检查完成，从探测失败到状态翻转存在 1~2 个检查周期的延迟，短时抖动表现为离线数瞬时尖峰后回落，不必立即介入；4) 序列消失（整条 upstream 被删除、nginx 实例改名）不会记为离线，而是表现为「后端总数」下降，因此概览同时保留「后端总数」与采集健康分区，用于区分「真掉线」和「没人上报」；离线类面板一律保留 0 基线（分组离线线恒为 0、离线清单给占位行），健康时段不会呈现空白，空白只可能是采集断链；5) 采集健康分区用 Pushgateway 的 push_time_seconds 判断推送是否还在继续——指标值本身会被 Pushgateway 长期保留并按抓取时间刷新，只看指标无法发现推送中断；6) 变量按 环境 → Nginx 实例 → 上游分组 三级联动，均支持 All、均为 current:null + refresh:2 自动解析；7) 布局为 8 张 w3×h5 概览卡片 + 后端状态明细 + 状态趋势 + 分组汇总 + 采集健康五个分区。",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "上游健康整体水位：采集链路状态、后端总数/在线/离线、在线率、分组数、受影响分组与全组离线分组（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "Pushgateway 抓取目标的 up：1=中心 Prometheus 能正常抓到 Pushgateway，0=抓取失败。它只反映「抓取通道」是否通，不反映 nginx 是否还在推送；两者都正常才算数据链完整——若本卡片为绿而「推送组最后推送距今」持续上涨，说明抓取正常但 nginx 侧已停止上报。全空（No data）表示该 job 在数据源里根本不存在。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "min(up{job=\"pushgateway\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集目标",
+          "refId": "A"
+        }
+      ],
+      "title": "采集链路状态",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "当前 upstream 后端条目数（每个 上游分组 × 后端地址 × 检查类型 各计一条），跟随顶部变量过滤。数值下降的台阶代表后端被从 upstream 配置里移除，或整条 upstream 被删除；后端离线不会让该值下降，离线看「离线后端」卡片。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 2,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "后端条目",
+          "refId": "A"
+        }
+      ],
+      "title": "后端总数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "status 为 up 的后端条目数，即当前可正常接收流量的后端。与「后端总数」对照可判断容量是否缩水：总数不变而在线数下降，说明有后端被健康检查判定为不可用；全部在线时按 0 序列兜底显示后端数，不会出现空面板。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线后端",
+          "refId": "A"
+        }
+      ],
+      "title": "在线后端",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "status 非 up 的后端条目数，0 为健康（绿），大于 0 即红。少量离线多为单机故障或端口不通；全部离线多为 upstream 配置错误、后端整体不可达或健康检查脚本误判，需结合「离线后端清单」看具体地址。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 4,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) - (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "离线后端",
+          "refId": "A"
+        }
+      ],
+      "title": "离线后端",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "在线后端 / 后端总数 × 100%，用于判断容量水位。低于 100% 说明已有后端不可用；长期在 50%~90% 波动常见于健康检查阈值偏严或后端间歇性超时，可适当放宽 rise/fall 次数。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "100 * ((count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)) / count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线率",
+          "refId": "A"
+        }
+      ],
+      "title": "在线率",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "上报了状态数据的上游分组数量（按 Nginx 实例 × 上游分组 各计一个，与「受影响分组」「全组离线分组」口径一致）。骤降说明有 upstream 被删除或健康检查配置被摘掉；该值只统计仍有后端条目的分组。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "上游分组",
+          "refId": "A"
+        }
+      ],
+      "title": "上游分组数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "至少有一个后端离线的上游分组数量，0 为健康。它衡量故障面：单个分组受影响属局部问题，多个分组同时抬升通常指向共性依赖（同一台机器、同一网段、同一个 DNS 或公共网关）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 7,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"})) or (count(count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"})) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "受影响分组",
+          "refId": "A"
+        }
+      ],
+      "title": "受影响分组",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所有后端都离线的上游分组数量，0 为正常，大于 0 属最高优先级故障——该分组已完全不可用，请求会全部失败。逐组确认时看「上游分组汇总」表按离线数/在线率定位。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 8,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count((count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"})) == (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))) or (count(count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"})) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "全组离线",
+          "refId": "A"
+        }
+      ],
+      "title": "全组离线分组",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "逐后端状态快照（全宽瞬时表）：Nginx 实例 → 上游分组 → 后端地址 → 检查类型 → 原始 status 与折算后的在线值",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 150,
+      "panels": [],
+      "title": "后端状态明细 Detail",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "瞬时快照：按 Nginx 实例 → 上游分组 → 后端地址 → 检查类型 → 原始状态 列出每个后端，末列「在线」为折算后的状态枚举（在线=绿格、离线=红格）。这是全板的排查起点：先看哪些行变红，再从「离线后端清单」取地址，最后用「上游分组汇总」判断影响面。检查类型一列区分同一后端的 tcp 与 http 两类检查，两者结论不一致时以 http 为准（更贴近业务真实可用性）。顶部选 All 时多台 Nginx 各占独立行，不会互相合并。列序按排查习惯固定为「实例→分组→地址→检查类型→原始状态」，不随标签名变化；后端端口不再单列，因为后端地址本身已是 ip:port 形式。",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 9,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "Nginx 实例",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a1_nginx",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "上游分组",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a2_upstream",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "后端地址",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a3_name",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "检查类型",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a4_type",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "原始状态",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a5_status",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "在线",
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value",
+          "thresholds": [
+            "0.5",
+            "1"
+          ],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "在线",
+              "value": "1"
+            },
+            {
+              "op": "=",
+              "text": "离线",
+              "value": "0"
+            }
+          ]
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (a1_nginx, a2_upstream, a3_name, a4_type, a5_status) (label_replace(label_replace(label_replace(label_replace(label_replace(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"},\"a1_nginx\",\"$1\",\"nginx\",\"(.*)\"),\"a2_upstream\",\"$1\",\"upstream\",\"(.*)\"),\"a3_name\",\"$1\",\"name\",\"(.*)\"),\"a4_type\",\"$1\",\"type\",\"(.*)\"),\"a5_status\",\"$1\",\"status\",\"(.*)\")) or (count by (a1_nginx, a2_upstream, a3_name, a4_type, a5_status) (label_replace(label_replace(label_replace(label_replace(label_replace(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"},\"a1_nginx\",\"$1\",\"nginx\",\"(.*)\"),\"a2_upstream\",\"$1\",\"upstream\",\"(.*)\"),\"a3_name\",\"$1\",\"name\",\"(.*)\"),\"a4_type\",\"$1\",\"type\",\"(.*)\"),\"a5_status\",\"$1\",\"status\",\"(.*)\")) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "后端状态明细",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "状态趋势：在线/离线数量、在线率曲线、按分组与按后端的在线情况，以及每个后端的状态矩阵（1=在线 / 0=离线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 200,
+      "panels": [],
+      "title": "状态趋势 Trend",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "在线与离线后端条目的数量趋势。两条线之和恒等于「后端总数」，因此离线线爬升必然对应在线线下降；离线线只出现瞬时尖峰后立即回落，多为一次健康检查抖动或单次探测超时，不必立即介入。全部在线时曲线稳定在满值，不会因无离线序列而断线。两条线均不填充，避免在线线的填充区盖住贴近 0 的离线线，离线抬升一眼可见。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线后端",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) - (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "离线后端",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "在线与离线后端数趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "后端数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "在线率的时间曲线，纵轴固定 0~100%。台阶式下跌说明有后端被判离线，V 形快速恢复多为探测抖动；若曲线长期平行在某个水位，说明固定数量的后端一直处于不可用状态，需要清理配置或修复机器。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "hiddenSeries": false,
+      "id": 11,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * ((count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)) / count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线率",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "在线率趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "在线率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按 Nginx 实例 + 上游分组统计在线后端数并取前 10，用「后端总数 − 离线数」计算，因此某分组后端全部离线时会如实显示 0，而不是从图上整条消失。阶梯线用于对比各业务分组的可用后端规模，某条线归零即该分组已无可用后端；仅展示规模最大的 10 个分组，其余请用顶部「上游分组」变量下钻。各分组不填充，避免高值分组的填充区遮住低值分组，某组归零时能直接看到线落到 0。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) - (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"}) or (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{nginx}} | {{upstream}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组在线后端数 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "后端数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按 Nginx 实例 + 上游分组统计离线后端数。全部在线时给出一条「全部在线」的 0 基线（平线即健康），出现真实告警时该基线消失、改为显示实际掉线分组及其离线数——这样健康时段不会整块空白，空白只可能代表采集断链。曲线长期贴在高位说明该分组后端池已实质缩水。不填充，离线数抬升与回落的台阶不会被其它分组的填充区遮盖。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 13,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"}) or (label_replace(label_replace(vector(0),\"nginx\",\"—\",\"\",\"\"),\"upstream\",\"全部在线\",\"\",\"\") and on() (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) > 0) unless on() (count(count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"})) > 0))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{nginx}} | {{upstream}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组离线后端数",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "后端数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个后端一条 0/1 阶梯线：1 = 该后端的全部检查类型（tcp/http）均在线，0 = 任一检查项离线。全图不填充、只保留线条：多条序列同时为 1 时，填充会从 0 一路铺到 1 连成整块色带，把掉到 0 的离线后端整条盖住；去掉填充后，离线项表现为落到底部的断崖，一步就能看出来。图例按当前值升序排列，离线（0）的后端自动排到最前，后端数量多时无需翻找。标签集按「后端」补齐后再比较，因此即使某个后端的所有检查项同时失败（最严重的情形），它也会以 0 的线条出现，而不会从矩阵中整行消失。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "current",
+        "sortDesc": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "((count by (nginx, upstream, name) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count by (nginx, upstream, name) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)) == bool count by (nginx, upstream, name) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{upstream}} | {{name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "后端状态矩阵（1=在线 / 0=离线）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "状态",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "分组维度：分组汇总表、分组在线率趋势与离线后端清单",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 250,
+      "panels": [],
+      "title": "分组汇总 Group",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "按 Nginx 实例 + 上游分组汇总后端总数、在线数、离线数与在线率，一张表完成分组级健康盘点。离线列大于 0 即红，在线率低于 100% 变黄/变红；用于回答「哪个业务的上游最不健康」以及「该分组还剩几个可用后端」。",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "id": 15,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "Nginx 实例",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "nginx",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "上游分组",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "upstream",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "后端总数",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #A",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "在线",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #B",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "离线",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #C",
+          "thresholds": [
+            "1"
+          ],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "在线率",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 1,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #D",
+          "thresholds": [
+            "90",
+            "99.9"
+          ],
+          "type": "number",
+          "unit": "percent"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"}) or (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * ((count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)) / count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        }
+      ],
+      "title": "上游分组汇总",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个 Nginx 实例的上游分组各一条在线率曲线（纵轴 0~100%），图例表格给出 Min/Max/当前值。贴近 100% 的分组可放过，长期低于 90% 的分组优先排查；相比汇总表，这里能看出各分组是「同时掉」还是「陆续掉」——同时掉多为共性网络或上游交换机问题。各 Nginx 实例的每个上游分组各一条线，不填充，避免高在线率分组的填充区压低其它分组曲线的可见度。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * ((count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status=~\"up|UP|1|true\"}) or (count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) * 0)) / count by (nginx, upstream) (nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{nginx}} | {{upstream}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组在线率趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "percent",
+          "label": "在线率",
+          "logBase": 1,
+          "max": 100,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "只列出当前离线的后端（Nginx 实例 / 上游分组 / 后端地址 / 检查类型 / 原始状态）。全部在线时保留一行占位记录（各字段为 —、原始状态显示「全部在线」、数值 0），明确表达「当前无离线后端」而不是面板无数据；出现真实记录即为需要处理的离线后端，可直接作为值班交接的现场证据。列序与「后端状态明细」一致，后端端口不单列（地址已含 ip:port）。",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 17,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "Nginx 实例",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a1_nginx",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "上游分组",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a2_upstream",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "后端地址",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a3_name",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "检查类型",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a4_type",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "原始状态",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a5_status",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (a1_nginx, a2_upstream, a3_name, a4_type, a5_status) (label_replace(label_replace(label_replace(label_replace(label_replace(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"},\"a1_nginx\",\"$1\",\"nginx\",\"(.*)\"),\"a2_upstream\",\"$1\",\"upstream\",\"(.*)\"),\"a3_name\",\"$1\",\"name\",\"(.*)\"),\"a4_type\",\"$1\",\"type\",\"(.*)\"),\"a5_status\",\"$1\",\"status\",\"(.*)\")) or (label_replace(label_replace(label_replace(label_replace(label_replace(vector(0),\"a1_nginx\",\"—\",\"\",\"\"),\"a2_upstream\",\"—\",\"\",\"\"),\"a3_name\",\"—\",\"\",\"\"),\"a4_type\",\"—\",\"\",\"\"),\"a5_status\",\"全部在线\",\"\",\"\") and on() (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\"}) > 0) unless on() (count(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\",upstream=~\"$upstream\",status!~\"up|UP|1|true\"}) > 0))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "离线后端清单",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "采集健康：推送组最后推送距今秒数与抓取目标状态，用于区分「推送侧断链」与「抓取侧断链」",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "id": 300,
+      "panels": [],
+      "title": "采集健康 Collector",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Pushgateway 的 push_time_seconds 距今秒数，即每个推送组最后一次成功推送的时间距离现在多久。必须看这个指标而不是 nginx_upstream_status 本身：Pushgateway 会长期保留最后一次推送的值，抓取时只是刷新样本时间戳，所以推送停了指标照样「新鲜」。正常应稳定在推送周期附近（脚本 cron 间隔）；单调上涨说明该组已停止推送（脚本退出、nginx reload 失败、Pushgateway 不可达），此时所有状态面板展示的都是过期数据。多个推送组时先找到承载上游状态的那一组（通常以 nginx 命名）再判断。每个推送组一条线，不填充，多组曲线叠加时不会互相遮盖，便于对比哪一组先停止推送。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "hiddenSeries": false,
+      "id": 18,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "time() - max by (exported_job, exported_instance) (push_time_seconds{job=\"pushgateway\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{exported_job}} | {{exported_instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "推送组最后推送距今（秒）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "s",
+          "label": "秒",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Pushgateway 抓取目标的 up 曲线（1=正常、0=抓取失败），阶梯线下探即抓取中断。它与「推送组最后推送距今」配合区分两类断链：本图为 0 是抓取侧问题（中心 Prometheus 到 Pushgateway），本图正常但推送时间持续上涨是推送侧问题（nginx 到 Pushgateway）。不填充，只保留阶梯线，up 由 1 掉到 0 时能直接看到线落到轴底，不会被填充块掩盖。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "hiddenSeries": false,
+      "id": 19,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "up{job=\"pushgateway\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集目标",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "采集目标状态",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "up",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "Nginx",
+    "Upstream",
+    "负载均衡"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(nginx_upstream_status{job=\"pushgateway\"},env)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "环境",
+        "multi": false,
+        "name": "env",
+        "options": [],
+        "query": "label_values(nginx_upstream_status{job=\"pushgateway\"},env)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\"},nginx)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Nginx 实例",
+        "multi": true,
+        "name": "nginx",
+        "options": [],
+        "query": "label_values(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\"},nginx)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\"},upstream)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "上游分组",
+        "multi": true,
+        "name": "upstream",
+        "options": [],
+        "query": "label_values(nginx_upstream_status{job=\"pushgateway\",env=~\"$env\",nginx=~\"$nginx\"},upstream)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "Nginx Upstream (Optimized)",
+  "uid": "nginx-upstream-opt",
+  "version": 1
+}

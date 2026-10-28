@@ -4265,7 +4265,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "各采集器状态（1=成功，0=失败），快速定位某类指标缺失的采集侧原因。兼容 windows_exporter_collector_success 与 wmi_exporter 0.7 的 wmi_exporter_collector_success。",
+      "description": "各采集器状态（1=成功，0=失败），快速定位某类指标缺失的采集侧原因。兼容 windows_exporter_collector_success 与 wmi_exporter 0.7 的 wmi_exporter_collector_success。不填充、只保留折线：多采集器共用 0/1 轴时，填充会连成整块色带，把失败的采集器（值为 0、线条贴轴底）盖住；改为纯线条后失败项一眼可见。",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -4274,7 +4274,7 @@
         },
         "overrides": []
       },
-      "fill": 0.3,
+      "fill": 0,
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
