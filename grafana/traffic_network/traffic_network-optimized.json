@@ -1,0 +1,2953 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "网络设备（交换机 / 防火墙）接口流量监控，数据来自 snmp_exporter 抓取的 IF-MIB 接口表，适配 Grafana 7.1.4（schemaVersion 26）。指标口径说明：1) 字节计数器优先取 ifXTable 的 64 位 ifHCInOctets / ifHCOutOctets，设备未实现 ifXTable 时自动回落到 ifTable 的 32 位 ifInOctets / ifOutOctets。32 位计数器按 2^32 回绕（34,359,738,368 bit ÷ 链路速率）：100Mbps 约 5.7 分钟、1Gbps 约 34 秒、10Gbps 约 3.4 秒就绕一圈，而 rate()/irate() 遇到「值变小」一律按计数器重置处理，只补一个前值——结果是速率被**严重低估**并且不报错，所以高速口必须走 64 位路径；回落路径的读数只能作趋势参考，不能拿来看峰值。2) 速率一律 rate([5m])×8 换算 bps，不使用 irate：irate 只取最后两个采样点，60s 抓取周期下一次丢包或抖动就会被放大成尖刺，且曲线形态随所选时间范围变化。3) 接口名 ifDescr 的两种暴露形态都被兼容：若 snmp_exporter 把它作为独立字符串指标（值恒为 1、名称放在同名标签上），查询用 on(instance, job, ifIndex) group_right() 关联；若模块用 generator 的 lookups 把它并入读数序列的标签，则直接按标签分组。两支结果归一化为同一套标签集再合并，且标签分支要求 ifDescr 非空，因此同一条接口不会出现「有名字」和「空名字」两条曲线。4) 带宽利用率 = 速率 ÷ 协商速率：协商速率优先取 ifXTable 的 ifHighSpeed（单位 Mbps，可覆盖 4.29Gbps 以上的链路），缺失时回落 ifSpeed（单位 bps，32 位上限 4.29Gbps），两者都缺失时按 1Mbps 兜底，因此出现大于 100% 的读数通常意味着设备上报的协商速率与实际不符（或链路聚合口只上报单成员速率），而不是流量真的超限。5) 所有比率的分母统一用 clamp_min 兜底，不使用比较运算符做除零保护——PromQL 的比较运算返回的是过滤结果，会把分母为 0 的整个时间点连同序列一起丢弃，空闲时段即整段 No data。6) 方向语义：ifInOctets 是设备「接收」（网络下行），ifOutOctets 是「发送」（网络上行）；双向对比图中上行以负值绘制。7) 变量「分组名称」按 up 指标动态发现并排除 iDRAC 温度采集任务，「设备」取自接口表的 instance标签（SNMP 目标地址），「接口」为 ifDescr，「TopN」控制曲线数量以限制序列爆炸；三个查询类变量均为多选 All + current:null + refresh:2，导入后自动解析。8) 每个面板均带中文说明，图例为表格模式展示 Min/Max/Current。9) 性能设计（长时间窗重点）：a) 计数器回落的去重不再写成 `A or (B unless on(..) A)`——`rate()` 会丢弃 `__name__`，A 与 B 落在同一标签集上时 `or` 本身就是「左优先、左缺取右」，再算一遍 A 纯属重复计算；b) 接口名双形态合并的去重不再重算整个 join 分支，改用裸 `ifDescr` 选择器做存在性探测；c) 利用率与全网水位类面板先聚合再 join 接口名（序列数从「每接口」降到 1 条）；d) 所有面板设 `maxDataPoints`（图 400 / 卡片 200 / 表 500）与 `interval=2m`，避免 24 小时窗口按像素宽度拉回上千点导致前端卡顿；e) 刷新周期 2m。以上使表达式里 `rate()` 求值次数下降 51%、`unless` 下降 78%，24h 档位下查询明显变快。范围说明：本仪表盘只覆盖接口级的收发流量、链路状态与错误/丢弃计数，不含设备 CPU/内存、会话数、路由表等厂商私有指标——那部分需在 snmp.yml 模块中额外 walk 对应 OID 后才能建面板；若某类面板整块为空，请先看「设备流量汇总」表的三列覆盖计数，确认是模块未 walk 到该 OID，而不是链路或采集故障。查询优化说明：本环境 ifDescr 为独立序列（join 模式），已移除内嵌标签兜底分支（or/unless 双份计算），状态矩阵打标由 7 分支合并为 up/down 两分支，查询复杂度约降至原来的 1/3~1/10。",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "网络设备接口流量总览：SNMP 采集连通性、在线设备与接口规模、接口 UP 数、全网双向带宽、出/入比与错误丢弃速率（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "流量概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选分组内 SNMP 抓取目标的状态：1=正常、0=失联。取最小值，任一台设备抓取失败即变红。这张卡片是判断「后面的流量曲线为什么断了」的第一依据——为 0 时该设备的接口计数器停止更新，其带宽曲线会一起消失，属采集链路问题而非网络中断。SNMP 走 UDP 161 且抓取周期 60s，单次超时偶发，短暂抖动可结合时间轴忽略。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "id": 1,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "min(up{job=~\"$job\", instance=~\"$device\"}) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集状态",
+          "refId": "A"
+        }
+      ],
+      "title": "采集状态",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "抓取成功的设备数量（up==1）。与「采集接口数」配合可区分「整机不可达」与「设备在线但接口表读取失败」：设备数正常而接口数下降，说明团体名/ACL 被调整或 ifTable 被设备侧限制，而不是网络中断。无匹配序列时回落到 0，目标整体缺失时保持空白，不用假数据掩盖故障。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "id": 2,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(up{job=~\"$job\", instance=~\"$device\"} == 1) or (count(up{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线设备",
+          "refId": "A"
+        }
+      ],
+      "title": "在线设备数",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选范围内上报了 ifOperStatus 的接口条目总数，是判断采集完整性的规模基线。数值骤降通常意味着设备侧接口表变化（板卡拔出、子接口重建）、snmp.yml 模块的 walk 范围被改动，或设备 SNMP 响应超时被截断。逐台逐口核对请看底部「接口流量明细」表。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "id": 3,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) or (count(up{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集接口",
+          "refId": "A"
+        }
+      ],
+      "title": "采集接口数",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "ifOperStatus==1（up）的接口数量。其余取值：2=down、3=testing、5=dormant、6=notPresent、7=lowerLayerDown。与「采集接口数」相减即得非工作口数量：差值突然变大通常是链路中断、对端重启或光模块失联；差值长期稳定则多是未使用的预留口（空板端口、未接线口），属正常。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "id": 4,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(ifOperStatus{job=~\"$job\", instance=~\"$device\"} == 1) or (count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "UP 接口",
+          "refId": "A"
+        }
+      ],
+      "title": "接口 UP 数",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选范围内全部接口的接收速率合计（bps）。字节计数器优先取 64 位 ifHCInOctets，设备未实现 ifXTable 时回落到 32 位 ifInOctets。这是全网下行流量的总水位：整体抬升=业务量上升，单点突增=单台设备或单个接口异常（结合「接口入带宽 TopN」定位）。多设备求和时各设备抓取时刻并不同步，短时尖峰不代表同一瞬间的真实总和。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "id": 5,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "总入带宽",
+          "refId": "A"
+        }
+      ],
+      "title": "总入带宽",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选范围内全部接口的发送速率合计（bps）。与「总入带宽」对照可看出流量方向是否对称：Web/下载类业务出向远大于入向，备份/上传类业务相反。两侧等比例抬升通常是链路上新增业务，只有单侧抬升则要排查是否出现了流量环路或异常回包。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "id": 6,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "总出带宽",
+          "refId": "A"
+        }
+      ],
+      "title": "总出带宽",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "出向合计 ÷ 入向合计，100% 表示上下行完全对称。分母用 clamp_min 兜底——没有入向流量时比值会显示为很大的数，而不是因为分母为 0 整段变成空白。长期显著偏离 100% 通常源于业务本身的不对称（纯下载、纯备份），属正常；若该比值在某天突变，优先怀疑某台设备的接口方向统计异常或出现单向流量环路。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "id": 7,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / clamp_min(sum(sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "出/入比",
+          "refId": "A"
+        }
+      ],
+      "title": "出/入带宽比",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "ifInErrors / ifOutErrors / ifInDiscards / ifOutDiscards 四个计数器的速率合计（包/秒），已跨全部接口求和为单个总数——卡片是「全网口错误水位」，逐口定位请看「接口错误包速率 TopN」。这是链路质量最直接的信号：错误包非零多为物理层问题（光衰、串扰、网卡或光模块故障），丢弃包非零多为队列拥塞或 ACL 命中。健康时保留 0 基线，采集断链时保持空白，不会把「没有采集到」伪装成「一切正常」。",
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "pps"
+        },
+        "overrides": []
+      },
+      "id": 8,
+      "interval": "2m",
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(sum by (instance, job, ifIndex) (rate(ifInErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifInDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0)) or (count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "错误/丢弃",
+          "refId": "A"
+        }
+      ],
+      "title": "错误与丢弃包速率",
+      "type": "stat",
+      "maxDataPoints": 200
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "设备维度的收发带宽：入/出 TopN 排行，以及上下行对比（上行以负值绘制，便于判断方向是否对称）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 200,
+      "panels": [],
+      "title": "设备流量 Device Traffic",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按设备（SNMP 目标地址）聚合的接收带宽排行，取所选范围内的前 TopN 台。设备维度把成百上千个接口的曲线压成十来条，适合先看「哪台设备流量大」，再用「接口入带宽 TopN」下钻到具体端口。聚合前已对各接口速率求和，因此端口数量多的设备天然偏高，比较设备间流量时需注意这一口径。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "设备入带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "下载 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按设备聚合的发送带宽排行。与入向排行对照可快速识别「只发不收」的设备（多为对外提供服务的防火墙出口）与「只收不发」的设备（镜像口或单向链路）。若某设备的出向突然远高于历史水平，需排查广播风暴或流量环路——这类故障的典型特征是出向持续高位而业务侧指标毫无变化。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "设备出带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "上传 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "同一台设备的入向画在正半轴、出向画在负半轴（图例以「_out上传」结尾的序列被 seriesOverrides 翻到负轴），一眼就能看出上下行是否对称。正负两侧同比例放大=业务量整体上升；只有一侧放大=单向业务或异常流量。该面板只按设备聚合，接口级的方向对比见「接口双向合计 TopN」。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "/_out上传$/",
+          "transform": "negative-Y"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} _in下载",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} _out上传",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "设备上下行对比（上传为负）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "下载(+) / 上传(−) bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "接口维度：收发带宽 TopN、双向合计与带宽利用率，另含全网水位与包速率；图例统一为「设备 · 接口名」，曲线数量由 TopN 变量控制",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 300,
+      "panels": [],
+      "title": "接口流量 Interface Traffic",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按「设备 + 接口」聚合的接收带宽排行，每口一条曲线，图例为「设备IP · 接口名」。这是定位具体端口的首选面板：从设备排行发现某台设备跑量后，在这里即可看出是哪个口。接口名来自 IF-MIB::ifDescr；设备未上报 ifDescr 的接口不会出现在图例里，但其流量仍计入设备维度面板，因此两个维度的总和可能有微小差异。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 31,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口入带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "下载 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按「设备 + 接口」聚合的发送带宽排行。与入向排行并排看可判断端口角色：面向用户的接入口通常入向大于出向（用户下载），服务器接入口相反。同一台设备上入向与出向同时进 TopN 的端口，通常是核心互联口，或该设备正在做流量转发。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "hiddenSeries": false,
+      "id": 32,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口出带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "上传 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "入向 + 出向的合计带宽排行，用来衡量「哪个端口最忙」。只看单向排行会漏掉收发各占一半的全双工互联口。注意全双工链路的收与发在物理上是各自独立的通道，合计值可能超过单条链路线速（1Gbps 全双工口双向合计可达 2Gbps），这属正常，不能按「超过链路速率就是故障」来读。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 32
+      },
+      "hiddenSeries": false,
+      "id": 33,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, (sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}) + sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"})) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口双向合计 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bps",
+          "label": "双向合计 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "接收速率 ÷ 协商速率，用百分比表示端口带宽水位。协商速率优先取 ifXTable 的 ifHighSpeed（单位 Mbps，可覆盖 4.29Gbps 以上的链路），缺失时回落 ifSpeed（单位 bps，32 位上限 4.29Gbps），两者都缺失时按 1Mbps 兜底。出现大于 100% 的读数通常意味着设备上报的协商速率与实际不符（或链路聚合口只上报单成员速率），而不是流量真的超限；长期贴着 70% 以上的端口应评估扩容或分流。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 32
+      },
+      "hiddenSeries": false,
+      "id": 34,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) (((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "入向带宽利用率 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": "利用率",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "发送速率 ÷ 协商速率。出向拥塞比入向更常见——同一接口下挂的终端越多，上行越容易打满，表现为丢包（ifOutDiscards）与排队延迟同时上升。判据是两条线一起看：只有利用率高而没有丢弃，说明链路虽满但尚未拥塞；两者同时出现即为真实的出口拥塞，需要扩容或调整调度策略。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 32
+      },
+      "hiddenSeries": false,
+      "id": 35,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) (((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "出向带宽利用率 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": "利用率",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "所选范围内所有接口利用率的四项统计：入向最大值、入向平均、出向最大值、出向平均。这把成百上千个端口压成 4 条线，适合长期观察「整体水位是否逼近容量」：平均值稳步抬升说明带宽在整体消耗，最大值长期 90% 以上说明已有端口打满，需回到 TopN 面板定位。平均值包含大量空闲端口，数值天然偏低，不要用平均值判断单口拥塞。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "hiddenSeries": false,
+      "id": 36,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6)))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "入向 最大",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "avg((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6)))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "入向 平均",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6)))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "出向 最大",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "avg((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6)))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "出向 平均",
+          "refId": "D"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "全网带宽水位",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": "利用率",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按「设备 + 接口」的收/发包速率排行（ifHCInUcastPkts / ifHCOutUcastPkts，缺失时回落 32 位版本）。与带宽排行对照能区分两类异常：带宽高而包速率不高=大包流量（备份、视频、镜像），属正常；带宽不高而包速率极高=大量小包，典型原因是扫描攻击、组播风暴或应用层重试风暴，此时设备的 CPU 与会话表压力往往先于带宽告警到达。仅统计单播包，组播/广播不计入。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "hiddenSeries": false,
+      "id": 37,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCInUcastPkts{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInUcastPkts{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}} 收",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCOutUcastPkts{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutUcastPkts{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}} 发",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口包速率 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "pps",
+          "label": "包/秒",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "接口运行状态与链路质量：状态矩阵、UP/DOWN 数量趋势、错误包与丢弃包速率排行",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 400,
+      "panels": [],
+      "title": "接口健康 Interface Health",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个接口一条 ifOperStatus 阶梯线，**图例显示「设备 IP · 接口名 · 状态枚举」**，例如 `192.168.103.10 · Eth-Trunk1 · up`，不必再对照数字背状态码。枚举覆盖 IF-MIB 全部 7 种标准值：1=up、2=down、3=testing、4=unknown、5=dormant、6=notPresent、7=lowerLayerDown；**不在 1~7 的异常值（如 0、8、255，常见于厂商私有扩展或接口刚创建尚未初始化）统一标为「非标准值」并保留曲线**，不会被静默丢弃——这一点很重要：曲线消失应该只代表接口从采集里消失，绝不能因为状态码超范围就看不见。纵轴固定 0~7 的整数刻度，曲线高度仍是原始状态码，鼠标悬停可在 tooltip 看到具体数值。状态轴必须 fill=0：有填充时高值序列的色块会连成一片，把掉到低值的接口整条盖住。判断依据是曲线的台阶——落到 down 的时刻即链路中断，抬回 up 即恢复。图例以表格形式显示在图表下方（与其它面板一致），列出 Min / Max / Current 三列，按当前值升序排列，掉线的接口排在最前，便于快速找出异常端口。实现说明：Grafana 7.1.4 的 graph 图例只按 unit/decimals 格式化数字，不支持 stat/table 那样的 fieldConfig 数值映射，因此枚举是在查询里给序列打 `state` 标签实现的：九支比较运算各自打标签后合并，再关联一次接口名，每接口仍只有一条曲线。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "hiddenSeries": false,
+      "id": 41,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "current",
+        "sortDesc": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance, job, ifIndex, ifDescr, state)((label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 1, \"state\", \"up\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 2, \"state\", \"down\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 3, \"state\", \"testing\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 4, \"state\", \"unknown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 5, \"state\", \"dormant\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 6, \"state\", \"notPresent\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 7, \"state\", \"lowerLayerDown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) < 1, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) > 7, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\")) / on (instance, job, ifIndex) group_right(state) ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}) or (sum by (instance, job, ifIndex, ifDescr, state) ((label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 1, \"state\", \"up\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 2, \"state\", \"down\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 3, \"state\", \"testing\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 4, \"state\", \"unknown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 5, \"state\", \"dormant\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 6, \"state\", \"notPresent\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) == 7, \"state\", \"lowerLayerDown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) < 1, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\", ifDescr!=\"\"})) > 7, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\"))) unless on (instance, job, ifIndex) (sum by (instance, job, ifIndex) (sum by (instance, job, ifIndex, ifDescr, state)((label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 1, \"state\", \"up\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 2, \"state\", \"down\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 3, \"state\", \"testing\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 4, \"state\", \"unknown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 5, \"state\", \"dormant\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 6, \"state\", \"notPresent\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) == 7, \"state\", \"lowerLayerDown\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) < 1, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\") or label_replace((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) > 7, \"state\", \"非标准值\", \"ifIndex\", \"(.*)\")) / on (instance, job, ifIndex) group_right(state) ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}} · {{state}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口状态矩阵",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "状态码",
+          "logBase": 1,
+          "max": 7,
+          "min": 0,
+          "show": true,
+          "decimals": 0
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 300,
+      "interval": "5m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "三组计数：采集到的接口总数、处于 up 的接口数、处于非 up 的接口数。日常看「UP 数」是否稳定，异常时看「非 UP 数」是否突然抬升。总量（接口数）的台阶代表设备侧接口增减，UP/非 UP 的此消彼长代表链路状态变化——两者结合可区分「接口被删除」与「接口掉线」：前者总量下降，后者总量不变而 UP 数下降。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "hiddenSeries": false,
+      "id": 42,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) or (count(up{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集接口数",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count(ifOperStatus{job=~\"$job\", instance=~\"$device\"} == 1) or (count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "UP 接口",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count(ifOperStatus{job=~\"$job\", instance=~\"$device\"} != 1) or (count(ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "非 UP 接口",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口 UP / DOWN 数量趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "接口数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true,
+          "decimals": 0
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "入向与出向错误包的速率排行（ifInErrors + ifOutErrors）。错误包是物理层健康度的硬指标：非零且持续增长通常对应光模块收光过低/过高、双绞线串扰、网卡故障或速率双工不匹配（半双工下的典型表现是大量 late collision）。长距离链路上偶发少量错误可以接受，但同一端口持续增长就必须更换介质或模块。两个计数器先各自取 rate 再相加——直接写 `rate(A) or rate(B)` 只会保留左项，右项会被静默丢弃。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
+      "hiddenSeries": false,
+      "id": 43,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifInErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0)) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口错误包速率 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "pps",
+          "label": "错误包/秒",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "入向与出向丢弃包的速率排行（ifInDiscards + ifOutDiscards）。丢弃与错误的区别在于：丢弃是队列满或策略命中（可恢复的拥塞信号），错误是介质或硬件问题。出向丢弃持续抬升通常代表出口拥塞，应结合「出向带宽利用率 TopN」确认是否已接近线速；入向丢弃则可能是设备 CPU 保护或 ACL 命中丢弃。两个计数器分别取 rate 后相加，同理不能用 `or` 串联。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "hiddenSeries": false,
+      "id": 44,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true,
+        "sort": "max",
+        "sortDesc": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifInDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0)) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}} · {{ifDescr}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "接口丢弃包速率 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "pps",
+          "label": "丢弃包/秒",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      },
+      "maxDataPoints": 400,
+      "interval": "2m"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "瞬时快照（全宽表格）：设备汇总表按设备列出规模、双向带宽、错误速率与指标覆盖，接口明细表逐口列出状态、链路速率、双向带宽、利用率与错误/丢弃",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "id": 500,
+      "panels": [],
+      "title": "设备与接口明细 Detail",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "按设备（instance）汇总的瞬时快照，每台设备一行：入/出带宽、接口数、UP 数、错误丢弃速率，以及三类可选指标的覆盖计数。这是巡检入口表，用来快速判断「哪台设备有问题、问题属于哪一类」：接口数骤减看采集与接口表，UP 数骤减看链路，错误速率非零看介质。后三列（64 位计数器、链路速率、错误计数）是诊断列——某台设备该列为空或明显低于接口数，说明它的 snmp.yml 模块没有 walk 到对应 OID（ifXTable / ifSpeed / ifInErrors），对应面板在该设备上无数据属配置问题而非故障，需要在 generator.yml 里补上这些表。整台设备失联时该行会一起消失，不会显示成 0；表格不预置排序，点击表头可按任意列排序。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      },
+      "id": 51,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "设备",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "入带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #A",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "出带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #B",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "接口数",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #C",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "UP 接口",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #D",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "错误/丢弃 pps",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #E",
+          "thresholds": [],
+          "type": "number",
+          "unit": "pps"
+        },
+        {
+          "alias": "64 位计数器口数",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #F",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "链路速率口数",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #G",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "错误计数口数",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #H",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance) (sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) * 8",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (instance) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (instance) (ifOperStatus{job=~\"$job\", instance=~\"$device\"} == 1) or (count by (instance) (ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance) (sum by (instance, job, ifIndex) (rate(ifInErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifInDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0)) or (count by (instance) (ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (instance) (ifHCInOctets{job=~\"$job\", instance=~\"$device\"}) or (count by (instance) (ifOperStatus{job=~\"$job\", instance=~\"$device\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "F"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (instance) (ifHighSpeed{job=~\"$job\", instance=~\"$device\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "G"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (instance) (ifInErrors{job=~\"$job\", instance=~\"$device\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "H"
+        }
+      ],
+      "title": "设备流量汇总",
+      "transform": "table",
+      "type": "table-old",
+      "maxDataPoints": 500,
+      "interval": "2m"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "逐口瞬时快照：设备 → 接口 → 索引 → 运行状态 → 链路速率 → 双向带宽 → 利用率 → 错误/丢弃速率。列序由查询里 label_replace 生成的 a1_/a2_/a3_ 前缀标签固定（table-old 的标签列按字母序排列，styles 只负责别名与着色，改不了列顺序）。「运行状态」列把 ifOperStatus 数值映射为中文并整格着色（up 绿、其余红）；「索引」列保留 ifIndex，用于区分 ifDescr 重名的多个接口（子接口、堆叠设备的同名端口常出现重名）。状态显示 down 而仍有带宽读数的端口，多半是状态轮询与计数器轮询不同步或设备侧状态上报有延迟。表内只包含当前上报了指标的口，接口消失时该行一起消失（这不是 0，而是真的不在表里了）。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "id": 52,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "设备",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a1_device",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "接口",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a2_iface",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "索引",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a3_index",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "运行状态",
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #A",
+          "thresholds": [
+            "1",
+            "2"
+          ],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "op": "=",
+              "value": "1",
+              "text": "up"
+            },
+            {
+              "op": "=",
+              "value": "2",
+              "text": "down"
+            },
+            {
+              "op": "=",
+              "value": "3",
+              "text": "testing"
+            },
+            {
+              "op": "=",
+              "value": "4",
+              "text": "unknown"
+            },
+            {
+              "op": "=",
+              "value": "5",
+              "text": "dormant"
+            },
+            {
+              "op": "=",
+              "value": "6",
+              "text": "notPresent"
+            },
+            {
+              "op": "=",
+              "value": "7",
+              "text": "lowerLayerDown"
+            }
+          ]
+        },
+        {
+          "alias": "链路速率",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #B",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "入带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #C",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "出带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #D",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "入利用率",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 1,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #E",
+          "thresholds": [],
+          "type": "number",
+          "unit": "percentunit"
+        },
+        {
+          "alias": "出利用率",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 1,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #F",
+          "thresholds": [],
+          "type": "number",
+          "unit": "percentunit"
+        },
+        {
+          "alias": "错误/丢弃 pps",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #G",
+          "thresholds": [],
+          "type": "number",
+          "unit": "pps"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) ((max by (instance, job, ifIndex) (ifOperStatus{job=~\"$job\", instance=~\"$device\"})) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) (((sum by (instance, job, ifIndex) (rate(ifHCInOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifInOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) (((sum by (instance, job, ifIndex) (rate(ifHCOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]) or rate(ifOutOctets{job=~\"$job\", instance=~\"$device\"}[5m]))) / on (instance, job, ifIndex) group_right() sum by (instance, job, ifIndex) (clamp_min((ifHighSpeed{job=~\"$job\", instance=~\"$device\"} * 1000000) or (ifSpeed{job=~\"$job\", instance=~\"$device\"} * 1), 1e6))) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "F"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_device, a2_iface, a3_index) (label_replace(label_replace(label_replace(sum by (instance, job, ifIndex, ifDescr) ((sum by (instance, job, ifIndex) (rate(ifInErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutErrors{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifInDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0) + sum by (instance, job, ifIndex) (rate(ifOutDiscards{job=~\"$job\", instance=~\"$device\"}[5m]) or ifOperStatus{job=~\"$job\", instance=~\"$device\"} * 0)) / on (instance, job, ifIndex) group_right() ifDescr{job=~\"$job\", instance=~\"$device\", ifDescr=~\"$iface\"}), \"a1_device\", \"$1\", \"instance\", \"(.*)\"), \"a2_iface\", \"$1\", \"ifDescr\", \"(.*)\"), \"a3_index\", \"$1\", \"ifIndex\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "G"
+        }
+      ],
+      "title": "接口流量明细",
+      "transform": "table",
+      "type": "table-old",
+      "maxDataPoints": 500,
+      "interval": "2m"
+    }
+  ],
+  "refresh": "2m",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "Traffic",
+    "网络",
+    "流量",
+    "带宽",
+    "SNMP"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*snmp_(exporter|huawei_fw|sangfor_fw|sangfor_general).*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*snmp.*\",job!~\".*idrac.*\"}, job)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "分组名称",
+        "multi": true,
+        "name": "job",
+        "options": [],
+        "query": "label_values(up{job=~\".*snmp.*\",job!~\".*idrac.*\"}, job)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(ifOperStatus{job=~\"$job\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "设备",
+        "multi": true,
+        "name": "device",
+        "options": [],
+        "query": "label_values(ifOperStatus{job=~\"$job\"}, instance)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values({__name__=~\"ifDescr|ifOperStatus\",job=~\"$job\",instance=~\"$device\"}, ifDescr)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "接口",
+        "multi": true,
+        "name": "iface",
+        "options": [],
+        "query": "label_values({__name__=~\"ifDescr|ifOperStatus\",job=~\"$job\",instance=~\"$device\"}, ifDescr)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "10",
+          "value": "10"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "TopN",
+        "multi": false,
+        "name": "top",
+        "options": [
+          {
+            "selected": false,
+            "text": "5",
+            "value": "5"
+          },
+          {
+            "selected": true,
+            "text": "10",
+            "value": "10"
+          },
+          {
+            "selected": false,
+            "text": "15",
+            "value": "15"
+          },
+          {
+            "selected": false,
+            "text": "20",
+            "value": "20"
+          },
+          {
+            "selected": false,
+            "text": "30",
+            "value": "30"
+          }
+        ],
+        "query": "5,10,15,20,30",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "Traffic_Network(Optimized)",
+  "uid": "traffic-network-opt",
+  "version": 2
+}

@@ -30,9 +30,18 @@
 | `grafana/lvs/` | LVS (Optimized) | `lvs-opt-5672` | 26 | 基于 node_exporter ipvs collector，VIP/后端/连接/流量/权重分区（8 卡片 + 11 图 + 后端明细表） |
 | `grafana/nginx_upstream/` | Nginx Upstream (Optimized) | `nginx-upstream-opt` | 24 | 基于 Pushgateway 上报的 `nginx_upstream_status`，后端在线/离线、分组在线率与采集健康（8 卡片 + 10 图 + 3 表） |
 | `grafana/esxi/` | ESXi (Optimized) | `esxi-opt-10076` | 38 | 基于 vmware_exporter，主机资源/数据存储/虚拟机/硬件传感器分区（8 卡片 + 15 图 + 10 表） |
-| `grafana/kafka/` | Kafka (Optimized) | `kafka-opt-11962` | 52 | 基于 jmx_exporter，集群健康/吞吐/延迟/请求异常/消费组/JVM 分区（8 卡片 + 42 图 + 2 明细表） |
+| `grafana/kafka/` | Kafka (Optimized) | `kafka-opt-11962` | 59 | 基于 jmx_exporter，集群健康/吞吐/延迟/请求异常/消费组/JVM 分区（8 卡片 + 42 图 + 2 明细表） |
 | `grafana/sqlserver/` | SQL Server (Optimized) | `sqlserver-opt` | 34 | 基于 mssql_exporter，连接阻塞/内存缓存/吞吐等待/日志明细分区（8 卡片 + 20 图 + 数据库明细表） |
 | `grafana/zookeeper/` | ZooKeeper (Optimized) | `zookeeper-opt-10465` | 83 | ZK 自带指标端点 + JVM，九大分区、三列紧凑布局（8 卡片 + 57 图 + 1 明细表），JVM 区紧随选主区 |
+| `grafana/openobserve/` | OpenObserve (Optimized) | `openobserve-opt` | 58 | 基于 OpenObserve 自带 `zo_*` 指标端点，概览 / 元数据与存储 / Ingest 写入 / 压缩与合并 / 查询 / 接口与运行时六大分区（8 卡片 + 4 规模卡 + 39 图 + 1 明细表），指标口径已逐条对照源码与线上 `/metrics` 核实 |
+| `grafana/softraid/` | SoftRAID (Optimized) | `softraid-opt-155` | 20 | 基于 raid_monitor → Pushgateway 上报的 `raid_status`，阵列概览 / 状态趋势 / 采集健康 / 阵列明细四分区（8 卡片 + 6 图 + 2 表），含 Pushgateway 判活与状态码映射着色 |
+| `grafana/idc_temp/` | IDC Temp (Optimized) | `idc-temp-opt` | 26 | 基于 snmp_exporter `dell_idrac` 模块采集 iDRAC 温度探针，概览 / 冷通道进风 / 热通道与温差 / 部件温度与变化率 / 探针明细五分区（8 卡片 + 12 图 + 明细表），图例含机器名/iDRAC 带外地址/hostIP |
+| `grafana/traffic_network/` | Traffic_Network(Optimized) | `traffic-network-opt` | 29 | 基于 snmp_exporter IF-MIB 的网络设备（交换机/防火墙）接口流量，概览 / 设备流量 / 接口流量 / 接口健康 / 明细五分区（8 卡片 + 14 图 + 2 表），64 位计数器优先、带宽利用率与错误丢弃速率齐备 |
+| `grafana/traffic_host/` | Traffic_Host(Optimized) | `traffic-host-opt` | 21 | 基于 node_exporter / windows_exporter 的主机网卡流量，流量概览 / 全部主机 / 分组对比 / 主机明细四分区（8 卡片 + 8 图 + 1 明细表） |
+| `grafana/minio/` | MinIO (Optimized) | `minio-opt-15305` | 53 | 基于 MinIO v2 指标端点（cluster / node / bucket / resource），概览 / 容量与磁盘 / S3 请求 / 流量 / Bucket 与对象 / 节点资源 / 自愈与扫描 / 采集信息八分区（8 卡片 + 35 图 + 2 表）；采集过滤精确匹配 `job` 而非前缀正则，避免四端点同指标重复累加 |
+| `grafana/xenserver/` | XenServer(Optimized) | `_kRTLECvz` | 41 | 基于 xenserver 指标端点，总览 / CPU 与负载 / 内存与交换 / 磁盘 / 文件系统 / 网络六分区（9 卡片 + 3 singlestat + 21 图 + 2 表），由社区面板改造 |
+| `grafana/blackbox/` | Blackbox (Optimized) | `blackbox-opt-9719` | 22 | 基于 blackbox_exporter（icmp / http / tcp），拨测概览 / 状态明细 / 耗时分析 / 对比分析四分区（6 卡片 + 11 图 + 1 表） |
+| `grafana/docker/` | Docker (Optimized) | `docker-opt-8321` | 22 | 基于 cadvisor，概览 / 容器清单 / 容器资源 / 网络 / 磁盘 IO 五分区（8 卡片 + 8 图 + 1 表） |
 
 每个目录同时保留社区原版模板（文件名不带 `-optimized`，如 `RabbitMQ.json`、`Kubernetes Cluster.json`），仅作对照参考，不参与导入；ArgoCD 目录同样为 `argocd.json`（原版）+ `argocd-optimized.json`（优化版）。
 
@@ -66,6 +75,8 @@
 | Kafka | [prometheus/jmx_exporter](https://github.com/prometheus/jmx_exporter) javaagent（`kafka-2_0_0.yml` 采集规则），暴露 `kafka_*` 与 `jvm_*` 指标 |
 | SQL Server | [burningalchemist/sql_exporter](https://github.com/burningalchemist/sql_exporter) / [awaragi/prometheus-mssql-exporter](https://github.com/awaragi/prometheus-mssql-exporter)（`mssql_*` 指标），账号需具备 `VIEW SERVER STATE` 与 `VIEW ANY DEFINITION` 权限 |
 | ZooKeeper | 内置指标端点 `PrometheusMetricsProvider`（`metricsProvider.httpPort`，默认 7000，3.6+ 已自带 `jvm_*`）；旧版本可用 `dabealu/zookeeper-exporter` 或同机 jmx_exporter javaagent 补 JVM 指标 |
+| iDRAC（机房温度） | [prometheus/snmp_exporter](https://github.com/prometheus/snmp_exporter) + `dell_idrac` 模块，经 SNMP v2c 抓取 Dell iDRAC 的 `IDRAC-MIB-SMIv2` 温度探针（`temperatureProbeReading`），模块需 walk 到该 OID 表 |
+| 网络设备（交换机/防火墙流量） | [prometheus/snmp_exporter](https://github.com/prometheus/snmp_exporter)，模块需覆盖 `IF-MIB::interfaces` 与 `IF-MIB::ifXTable`（64 位 `ifHCInOctets`/`ifHCOutOctets`、`ifHighSpeed` 在 ifXTable 中），接口名 `ifDescr` 需在模块 walk 或 lookups 范围内 |
 | Kubernetes 基础 | KSM 2.2.x、kubelet 内置 cadvisor、etcd 3.5、kube-apiserver 1.23、CoreDNS 1.7/1.8、argo-rollouts、ArgoCD（application-controller / server / repo-server metrics） |
 | Prometheus | 规则文件兼容 Prometheus 2.x / VictoriaMetrics |
 | Alertmanager | 邮件 / 企业微信 / 钉钉 webhook 路由 |
@@ -102,6 +113,36 @@
 - **ZooKeeper 命名空间维度**：`read_per_namespace` / `write_per_namespace` 是 SummarySet，标签名固定为 `key`（不是 `namespace`），值为 ZK 内的命名空间路径；同名标签在 `learner_handler_qp_size`（值却是 learner 地址）里也复用，聚合时按 `key` 分组即可。**注意观测值是字节数而非操作次数**：`DataTree` 里读记响应体 `totalBytes`、写记 `path.length() + 数据长度`，所以面板单位是 Bps / 字节，按它排名得到的是「哪个命名空间数据量最大」，不能当作 QPS。
 - **ZooKeeper 选主类指标**：`learners`、`synced_followers`、`synced_observers`、`pending_syncs`、`leader_uptime`、`last/max/min_proposal_size` 只有 Leader 上报，非 Leader 为空属正常；`looking_count` 出现尖峰且 `leader_uptime` 归零即代表发生了一次重新选主。
 - **ZooKeeper JVM 指标来源**：ZK 3.6+ 的 `PrometheusMetricsProvider` 默认 `exportJvmInfo=true`，会在同一端点暴露 `jvm_memory_*`、`jvm_gc_*`、`jvm_threads_*` 等；若关闭该开关或使用旧版本，需要同机 jmx_exporter javaagent 补齐。优化版对两条链路取并集（`or` 后 `max` 去重），并分别绑定「实例」与「JVM 实例」变量，任一侧有数据即可出图。
+- **OpenObserve 计数器与 gauge**：`zo_ingest_bytes`、`zo_ingest_records`、`zo_storage_read/write_bytes`、`zo_storage_read/write_requests`、`zo_storage_time`、`zo_compact_merged_bytes/files`、`zo_compact_used_time`、`zo_query_disk_cache_hit/miss_count`、`zo_grpc_incoming_requests`、`zo_http_incoming_requests`、`zo_stream_stats_scan_total`、`zo_file_list_id_select_count` 都是自启动起的累计值，必须用 `rate`；`zo_meta_*`、`zo_storage_records/files/original_bytes`、`zo_ingest_memtable_*`、`zo_ingest_parquet_files`、`zo_ingest_wal_used_bytes`、`zo_query_*_nums`、`zo_compact_pending_jobs`、`zo_tokio_runtime_tasks` 是瞬时 gauge，套 `rate` 只会得到无意义锯齿。
+- **OpenObserve 语义易错三处**：`process_cpu_seconds_total` 是进程累计 **CPU 时间**而非运行时间（应 `rate` 后按「核」展示）；`zo_ingest_records` 是**记录条数**不是字节（平均记录长度需由 `zo_ingest_bytes / zo_ingest_records` 派生）；`zo_stream_stats_last_scan_timestamp` 是**微秒级 Unix 时间戳**，必须 `/1e6` 再与 `time()` 相减，直接写 `time() - 该值` 会得到天文数字或负数。
+- **OpenObserve 直方图分组**：`zo_file_access_time`、`zo_http/grpc_response_time`、`zo_ingest_wal_lock_time`、`zo_ingest_memtable_lock_time`、`zo_stream_stats_scan_duration_seconds`、`zo_query_parquet_cache_ratio(_node)` 都是原生直方图。按 `organization`/`scan_type` 分组时必须写成 `sum by (organization, le)`——漏掉 `le` 会让 `histogram_quantile` 拿到互不相交的桶，直接返回空结果（面板整块 No data）。
+- **OpenObserve 元数据口径**：`zo_meta_num_nodes/organizations/streams/users_total`、`zo_meta_storage_keys/bytes` 以及 `zo_storage_records/files/original_bytes` 属**组织/集群级快照**，多实例会各自上报同一份全量值，聚合一律 `max` 去重（`sum` 会按实例数成倍放大）。若部署形态确实是按实例分片统计，需改用 `sum` 才是集群总量——仪表盘描述里已注明这一前提。- **OpenObserve 分位数面板的空态（重要）**：`histogram_quantile` 在窗口内**没有新观测**时，各 `le` 桶的 `rate()` 增量全为 0，函数返回 **NaN**；Grafana 对 NaN 序列不画点，面板就显示 **No data**（实测：NaN 序列在 `/api/v1/query_range` 里返回 **0 个点**）。这属于「近期无流量」的正常空态，不是采集故障。**裸 `or vector(0)` 救不了**——NaN 是一个值而不是缺失序列，`or` 不会触发；正确写法是先用比较过滤把 NaN 滤掉再兜底：`(histogram_quantile(...) >= 0) or vector(0)`（实测：空闲时返回连续 0 值曲线，有流量时数值与未加壳写法完全一致）。本盘 20 条分位数查询已全部加此防护。
+- **OpenObserve 指标类型易错两处**：`zo_file_list_id_select_count` 与 `zo_service_streams_queue_dropped` 在源码里是 **IntGaugeVec（`.set()` 覆盖写）**，不是计数器，套 `rate()` 只会得到 0 或锯齿；而 `zo_query_disk_cache_hit_count` / `zo_query_disk_cache_miss_count` 才是真正的 `_count` 计数器（需要 rate）。判断依据看源码是 `.inc()/.set()` 还是 `IntCounterVec`，不要只看名字里有没有 count。
+- **OpenObserve 耗时指标单位不统一（易误标）**：`zo_ingest_wal_lock_time` 与 `zo_ingest_memtable_lock_time` 用 `start.elapsed().as_millis()` 观测 → 单位是**毫秒**（桶边界 0.2~2000）；`zo_http_response_time` / `zo_grpc_response_time` / `zo_storage_time` / `zo_compact_used_time` 用 `as_secs_f64()` → 单位是**秒**。把毫秒标成秒会让「20ms 的锁等待」显示成 20s，直接误判故障等级。
+- **OpenObserve `zo_file_access_time` 不是文件读取耗时**：其 HELP 原文是 "Histogram showing query counts within time windows from 1h to 1week"，桶边界为 1/2/3/6/12/24/48/96/168，**单位是小时**，衡量的是「用户一次查询覆盖多长的数据」（实测均值 161.44h 落在 96~168 桶之间）。原模板把它命名为「查询次数」并标 `unit=s` 均属误读；本盘改名为「查询时间窗口分布」并按 `h` 单位展示。Grafana 7.1.4 有 `h` 单位，没有 `hours` 这个 id。
+- **OpenObserve `zo_tokio_runtime_tasks` 的 -1 是哨兵值**：该 gauge 带 `runtime` + `metric_type` 两个标签（metric_type ∈ workers / alive_tasks / global_queue_depth / blocking_queue_depth / io_driver_fd_registered）。源码 `src/node/src/runtime_metrics.rs` 在**未以 `--cfg tokio_unstable` 编译**时只 `set(workers = -1)`，表示「拿不到运行时内部计数」——所以面板上看到 `http=-1 / job=-1` 并非真的只有 -1 个 worker，也不能当容量信号；启用 tokio_unstable 重新编译后才会出现其余 metric_type。另注意 `sum by (runtime)` 会把不同 metric_type 混加，必须 `by (runtime, metric_type)`。
+- **OpenObserve `zo_query_running_nums` 有上游记账缺陷**：`search_service/src/cluster/flight.rs` 里只有 `.inc()`，配对的 `.dec()` 在 work_group 的异步守卫中，flight 路径会漏减，导致该 gauge 单调累积（实测已累积到 4142 且空闲不回落）。因此它不能当作「当前运行中查询数」，实时并发应看 `zo_query_pending_nums` 与请求速率。
+- **OpenObserve 内存表字节是两套独立记账**：`zo_ingest_memtable_bytes` 累计 `data_json_size`、`zo_ingest_memtable_arrow_bytes` 累计 `data_arrow_size`（源码 `partition.rs` 分别 `.add()`），二者**不是「总量与其子集」**的关系，Arrow 曲线高于 JSON 曲线属正常，不要读成占比。
+- **OpenObserve `role` 是 const label**：`create_const_labels()` 给所有 `zo_*` 注入 `cluster` / `instance` / `role` 三个常量标签，单机部署下 `role` 恒为 `all`、`instance` 是容器 ID（如 `6c80a69220f5`）而非 `IP:端口`。因此 `by (role)` 只有一条无区分度的线，聚合应按 `organization` / `stream_type` / `instance` 拆分。
+- **【制作流程坑】不要用 PowerShell 双引号 here-string 改 Grafana JSON 里的 `$变量`**：在 `pwsh -c "...@\"...\"@"` 里，双引号内的 `$job` / `$instance` 会被 PowerShell 当作自身变量插值成空字符串，于是 `{job=~\"$job\"}` 落盘后变成 `{job=~\"\"}`。这种空 matcher 不报错、不违反 PromQL 语法，但会**永远匹配不到任何序列**，面板表现为 No data，且极难从 JSON 里看出来（原文看上去只是引号里少了个词）。本轮就因此让「虚拟内存」与「Tokio 运行时」两张图变空。**正确做法**：改 JSON 一律用 Python 脚本 + `io.open()`/`json.dump` 读写，或用单引号 here-string；改完必须跑一次「空 matcher 扫描」门禁：`re.search(r'=~""', expr)`，命中即失败。同时建议对全部表达式做变量展开后的语法门禁，并断言每条 `zo_*`/`process_*` 查询都同时带 `job=~` 与 `instance=~`。
+
+- **SoftRAID 属性全在标签上**：`raid_status` 的**值**只有状态码 0/1/2，而 `raid_level`、`raid_active_devices`、`raid_failed_devices`、`raid_spare_devices`、`raid_total_devices`、`raid_array_size`、`raid_create_time`、`raid_update_time`、`raid_rebuild_status` 全是**标签（字符串）**。PromQL 无法把标签转成数值，所以盘数与容量只能计数或按标签过滤（`raid_failed_devices=~"[1-9][0-9]*"`），重建进度（形如 `recovering 45%`）**算不出百分比**——要真实进度必须补 `node_md_blocks` / `node_md_blocks_synced`。
+- **SoftRAID 判活不能用指标本身**：经 Pushgateway 上报的样本会永久保留，抓取只刷新样本时间戳，阵列状态序列永远「新鲜」，即使采集脚本已停摆数天、面板上的降级信息仍是最后一次推送的过期快照。判采集中断只能用 Pushgateway 自带的 `push_time_seconds`：`time() - max by (exported_job) (push_time_seconds{job="pushgateway", exported_job="raid_monitor"})`。
+- **SoftRAID 的 job 标签被改名**：`prometheus.yml` 的 `pushgateway` job 未开 `honor_labels`，推送时的 `job`/`instance` 被改写为 `exported_job`/`exported_instance`，样本上的 `job` 恒为 `pushgateway`。过滤阵列必须写 `exported_job`，写成 `job=~"raid.*"` 会查不到任何序列。整机下线时 keepalived/脚本侧条目直接消失、序列随之消失，因此「阵列总数下降台阶」是发现阵列悄悄消失的唯一手段（降级计数看不见它）。
+- **iDRAC 温度读数的单位与哨兵值**：`temperatureProbeReading` 的单位是**十分之一摄氏度**，需除以 10；探针不可用时 iDRAC 按 MIB 规范上报 **-128.0**（不同固件在原始值上表现为 -128 或 -1280）。因此所有查询都先按**原始值** `> -30` 过滤再除以 10，两种哨兵编码都能剔除；若只在除 10 之后过滤，-1280 会变成 -128℃、-128 会变成 -12.8℃，把纵轴压成一条平线并让真实曲线完全不可见。
+- **iDRAC 探针位置是独立指标**：`temperatureProbeLocationName` 在 snmp_exporter 里是**单独的字符串指标**（值放在同名标签上），并不附着在读数序列上。要做「按位置筛选/显示位置」必须 `ignoring(temperatureProbeLocationName) group_right()` 把它 join 回读数——反过来用 `group_left()` 会因标签集不匹配而丢数据。join 之后才带出 `name`（机器名）、`ip`（业务网主机地址）、`instance`（iDRAC 带外地址，形如 `192.168.16.226:161`，即 `prometheus.yml` 中 `replacement: ${1}:161` 拼出的结果）。
+- **iDRAC 不提供湿度**：服务器机箱内没有湿度传感器，`dell_idrac` 模块无论怎么改都取不到湿度。机房湿度、露点、精密空调（CRAC）、UPS/PDU、漏水与烟感属**动环层**数据，需另行接入机房级传感器（动环主机 SNMP、`modbus_exporter`）或改用 `redfish_exporter` / `ipmi_exporter` 直连带外口。
+- **iDRAC 可选探针位置随机型变化**：常见为 `System Board Inlet Temp`、`System Board Exhaust Temp`、`CPU1 Temp`、`CPU2 Temp`，机型未提供的位置对应面板为空属正常，不是采集故障。进排风温差 ΔT 只统计同时上报进风与排风探针的机器，缺任一探针的机型不出现在该面板。
+- **网络设备流量优先用 64 位计数器**：`ifInOctets`/`ifOutOctets` 是 32 位计数器，按 2^32 bit 回绕（100Mbps 约 5.7 分钟、1Gbps 约 34 秒、10Gbps 约 3.4 秒一圈），而 `rate()`/`irate()` 遇到值变小一律按「计数器重置」处理，结果**速率被严重低估且不报错**。仪表盘统一优先取 ifXTable 的 `ifHCInOctets`/`ifHCOutOctets`，仅当该接口没有 64 位序列时才回落 32 位版本。
+- **`ifSpeed` 在万兆口失效**：它是 Gauge32，上限 4294967295（≈4.29Gbps），5G/10G/25G/40G/100G 链路上恒为该最大值。带宽利用率的分母因此优先取 `ifHighSpeed`（单位 Mbps），回落 `ifSpeed`，都缺失时按 1Mbps 兜底——这也是面板上可能出现 >100% 读数的原因（协商速率上报与实际不符，或聚合口只上报单成员速率）。
+- **`ifDescr` 的两种暴露形态**：snmp_exporter 的官方 `if_mib` 模块自 v0.15.0 起把 `ifDescr`/`ifName`/`ifAlias` 作为 **lookups 标签**并入读数序列（metrics 段里 `ignore: true`，没有独立指标）；但自建模块若没写 lookups，就只能拿到 `ifIndex`，或 `ifDescr` 以「独立字符串指标」形式出现（值恒为 1、接口名放在同名标签上）。仪表盘的接口维度查询**两种形态都兼容**：先 `group_right()` join 独立 `ifDescr` 指标，再用 `unless` 补上「读数自带 ifDescr 标签」而未覆盖的接口——两者归一化为同一标签集，同一接口不会出现两条曲线。
+- **接口名可能为空或带乱码**：华为 iBMC 等设备的 DisplayString 尾部有 NUL 填充，标签值形如 `CPU1 Core Rem\x00\x00`，界面看着正常但 PromQL 永远匹配不上；snmp_exporter v0.24.0 之前非法 UTF-8 还会直接让整个 target 抓取失败（之后替换为 `�`）。另外若设备未实现 `1.3.6.1.2.1.2.2.1.2`（仅提供 ifXTable），lookup 取不到值会让标签为空、图例只剩索引。因此本盘图例除接口名外还保留 ifIndex，明细表另有「索引」列用于区分同名接口。
+- **多个计数器求和不能用 `or` 串联**：`rate()` 的输出**不带 `__name__`**，四个错误/丢弃计数器在同一接口上的标签集完全相同，`rate(A) or rate(B) or ...` 只会保留最左侧存在的那一项，其余三项被静默丢弃。正确写法是逐项各自 `or` 零基线（`ifOperStatus * 0`）再相加。
+- **graph 面板无法用 mappings 显示枚举（7.1.4 限制）**：`fieldConfig.mappings` 只有 stat / table 系列面板会应用；graph 面板的图例走 `TimeSeries.formatValue()`（`public/app/core/time_series2.ts`），只用 `getValueFormat(unit)` 格式化数字，而 `graph.ts` 给 tooltip 构造 fieldConfig 时也只传 `decimals` 与 `links`。因此 `ifOperStatus` 这类 0~7 状态码**不能**靠面板配置显示成 up/down。本盘的做法是在查询里给序列打 `state` 标签：每支写成 `label_replace((状态) == N, "state", "名称", ...)`，再 `or` 合并，最后用 `group_right(state)` 关联一次接口名，图例写成 `{{instance}} · {{ifDescr}} · {{state}}`。要点：①`X == N` 返回**原值**（不是 1）且会过滤掉不匹配的序列，所以每接口仍只有一条曲线、曲线高度仍是原始状态码；②**必须补非标准值的兜底**——IF-MIB 只定义了 1~7，但真实设备会出现 0 / 8 / 255（接口刚创建未初始化、厂商私有扩展），只写 7 支精确匹配会让这些接口**整条曲线消失**（不是显示未知，而是没了），兜底用 `(状态) < 1 or (状态) > 7` 两支即可，**不要用 `unless` 重算 7 支**——实测那样会让 24h 查询直接超时；③图例只保留 current 一列并靠右，否则接口多时三列表格会把面板挤满、名称与状态被截断。代价是选择器按分支数重复求值（9 支约为单支的 9 倍，24h 实测 0.7s→6.8s），故该面板单独把 `interval` 放宽到 5m、`maxDataPoints` 压到 300。
+
+- **`ifOperStatus` 状态轴必须 `fill=0`**：有填充时值为 1 的序列色块会连成一片，把掉到 2 的接口整条盖住；判断依据是曲线的台阶而不是「有没有线」。取值 1=up、2=down、3=testing、4=unknown、5=dormant、6=notPresent、7=lowerLayerDown。
+- **长时间窗（24h）的性能设计**：网络设备盘一条查询要处理上百台设备数千个接口，24 小时档下很容易卡住。本版针对该场景做了五项处理：①**计数器回落的去重去掉重复 rate**——`rate()` 丢弃 `__name__` 后两个分支标签集相同，`A or B` 本身就是「左优先、左缺取右」，不必再写 `B unless on(..) A` 把 A 重算一遍；②**接口名双形态合并的右支改用裸选择器做存在性探测**，不再重算整个 join 分支；③**利用率/水位类先聚合再 join**，序列数从「每接口」降到 1 条；④**所有面板限制 `maxDataPoints`**（图 400 / 卡片 200 / 表 500）并设 `interval=2m`，避免按像素宽度拉回上千点；⑤**刷新周期 2m**。合计使表达式中的 `rate()` 求值次数下降 51%、`unless` 下降 78%，24h 档位下查询明显变快。若某台设备接口数极多仍嫌慢，优先把「接口」变量收窄到具体设备，TopN 调小。
+- **`×8` 的位置必须在整个回落表达式之外**：PromQL 中 `*` 的优先级高于 `or`，写成 `A or (B unless C) * 8` 会被解析为 `A or ((B unless C) * 8)`——**只有回落分支乘了 8，主路径（64 位计数器）漏乘**，于是同一张图里两种接口的数值差 8 倍。正确写法是 `(A or B) * 8` 或把 `sum()` 提到外面再乘。
 
 ## 使用方式
 
@@ -154,6 +195,9 @@ opsmonitor/
     ├── iis/
     │   ├── IIS.json                            # 社区原版
     │   └── iis-optimized.json                  # 优化版（推荐）
+    ├── idc_temp/
+    │   ├── idc_temp.json                       # 社区原版
+    │   └── idc_temp-optimized.json             # 优化版（推荐）
     ├── kafka/
     │   ├── kafka.json                          # 社区原版
     │   └── kafka-optimized.json                # 优化版（推荐）
@@ -172,6 +216,9 @@ opsmonitor/
     ├── nginx_upstream/
     │   ├── nginx_upstream.json                 # 社区原版
     │   └── nginx_upstream-optimized.json       # 优化版（推荐）（推荐）
+    ├── openobserve/
+    │   ├── openobserve.json                    # 社区原版
+    │   └── openobserve-optimized.json          # 优化版（推荐）
     ├── rabbitmq/
     │   ├── RabbitMQ.json                       # 社区原版
     │   └── rabbitmq-optimized.json             # 优化版（推荐）
@@ -181,6 +228,9 @@ opsmonitor/
     ├── sqlserver/
     │   ├── sqlserver.json                      # 社区原版
     │   └── sqlserver-optimized.json            # 优化版（推荐）
+    ├── softraid/
+    │   ├── softraid.json                       # 社区原版
+    │   └── softraid-optimized.json             # 优化版（推荐）
     ├── windows/
     │   ├── Windows.json                        # 社区原版（windows_exporter）
     │   ├── windows-optimized.json              # 优化版（windows_exporter）

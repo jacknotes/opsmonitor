@@ -1,0 +1,1676 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "主机网络流量 Top 监控，双数据源：Linux node_exporter 与 Windows windows_exporter，适配 Grafana 7.1.4（schemaVersion 26）。指标口径说明：1) Linux 与 Windows 计数器通过 or 兜底合并，同一台主机只会命中其中一个来源，两套网卡标签（device/nic）在明细表中用 label_replace 统一为 iface；2) 速率统一用 rate([5m]) 替代原版的 irate（与抓取周期无关、曲线更平滑），字节速率一律 ×8 换算为 bps；3) Linux 网卡过滤由原版的 device=~\"eth.*\" 放宽为排除式过滤（排除 veth/lo/docker/br-/virbr/tun/cali/flannel），可覆盖 ens/eno/em/bond 等物理网卡命名，Windows 侧维持排除 isatap 与 VPN 虚拟网卡；4) 上下行合并面板用 negative-Y 把上传画在负半轴，图例以「上传/下载」结尾并配套 alias 正则（原版的 override 正则与图例不匹配导致负值不生效，本版已修正）；5) 全量面板保留所有序列并用 hideEmpty/hideZero 过滤静默网卡，Top 面板用 topk($top) 防止主机数量多时序列爆炸拖慢渲染；6) 分组变量 job 来自 up 指标动态发现（node/windows_exporter，排除 cadvisor/minio），includeAll 且不写死 current，TopN 为自定义变量；7) 每个面板均带中文说明，图例以表格形式展示 Min/Max/Current，布局为 8 张概览卡片 + 全部主机 + 分组对比 + 主机明细四个分区。",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "全网流量规模一览：采集目标在线/失联、分组总入出带宽、出入比、采集网卡数与单机带宽峰值（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "流量概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选分组内 exporter 抓取目标中 up==1 的数量。卡片变红说明有目标失联，其带宽序列会中断，与「失联主机数」对照排查；目标数按 job×instance 计数，同一主机挂多个采集任务会重复计入。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(up{job=~\"$job\",job!~\".*cadvisor|.*minio.*\"} == 1) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线",
+          "refId": "A"
+        }
+      ],
+      "title": "在线主机数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "up==0 的采集目标数量，0=正常（绿），大于 0（红）。失联目标的网络计数器不再更新，其带宽曲线会归零或断线，请先确认 exporter 与网络连通性，再判断是否为真实流量异常。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 2,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "count(up{job=~\"$job\",job!~\".*cadvisor|.*minio.*\"} == 0) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "失联",
+          "refId": "A"
+        }
+      ],
+      "title": "失联主机数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选分组全部物理网卡下载带宽合计（Linux receive + Windows received，rate[5m]×8）。带宽突增的排查路径：先在「分组对比」定位到分组，再到「主机明细」的 TopN 与明细表定位到单机单网卡。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "((sum(rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) or vector(0)) * 8) + ((sum(rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) or vector(0)) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "入带宽",
+          "refId": "A"
+        }
+      ],
+      "title": "分组总入带宽",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选分组全部物理网卡上传带宽合计。一般业务出向小于入向；出向异常抬升常见于大文件分发、备份窗口或对外攻击/扫描行为，可结合「主机出带宽 TopN」定位来源主机。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 4,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "((sum(rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) or vector(0)) * 8) + ((sum(rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) or vector(0)) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "出带宽",
+          "refId": "A"
+        }
+      ],
+      "title": "分组总出带宽",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "分组总出带宽 ÷ 总入带宽（分母用 clamp_min 兜底避免除零）。下载型业务通常在 0.2~0.8；持续大于 1 说明出向流量占主导（上传/分发型业务属正常），骤升需排查是否有主机对外大量发送数据。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "(((sum(rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) or vector(0)) * 8) + ((sum(rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) or vector(0)) * 8)) / clamp_min((((sum(rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) or vector(0)) * 8) + ((sum(rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) or vector(0)) * 8)), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "出/入比",
+          "refId": "A"
+        }
+      ],
+      "title": "出/入带宽比",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "当前有速率序列的物理网卡数量（Linux+Windows 合计）。数量骤降通常是主机失联、网卡名变更或被新加的过滤规则误伤（原版 eth.* 前缀过滤匹配不到 ens/eno 新命名，本版已放宽为排除式过滤）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "(count(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}) or vector(0)) + (count(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}) or vector(0))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "网卡",
+          "refId": "A"
+        }
+      ],
+      "title": "采集网卡数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选时间范围内单机下载带宽的峰值（按主机聚合全部物理网卡后，先取每时刻的主机间最大值，再对整个时间范围取 max，与「全部主机入带宽」图例中的 Max 列同口径）。注意卡片跟随顶部「分组名称」变量过滤，选单个分组时只统计该组主机，全网峰值请选 All。长期贴近网卡或交换机端口上限（1Gbps≈1e9 bps）时优先做带宽扩容或限速，结合「主机入带宽 TopN」可确认是哪台主机。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 7,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "max((sum by (instance) (rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) * 8) or (sum by (instance) (rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "单机峰值",
+          "refId": "A"
+        }
+      ],
+      "title": "单机入带宽峰值",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选时间范围内单机上传带宽的峰值（口径同「单机入带宽峰值」：主机聚合 → 每时刻主机间最大 → 时间范围取 max，与「全部主机出带宽」图例 Max 列一致，例如 24h 内某台上传到过 972 Mbps 这里就会显示 972 Mbps）。跟随顶部「分组名称」变量过滤，选单个分组时只统计该组主机。若峰值主机长期固定且带宽远超同组其它主机，确认其是否为分发/备份角色；无业务解释的持续高出向建议核查对外连接与限速策略。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 8,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "expr": "max((sum by (instance) (rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) * 8) or (sum by (instance) (rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "单机峰值",
+          "refId": "A"
+        }
+      ],
+      "title": "单机出带宽峰值",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "不做分组过滤的全网视角：全部主机入/出带宽与单机上下行合并对比（上传画在负半轴）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 200,
+      "panels": [],
+      "title": "全部主机 All Hosts",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "全网所有 Linux/Windows 主机的下载带宽（无分组过滤，rate[5m]×8，bps）。序列多时图例按 Max 排序定位峰值；网卡过滤为排除式，覆盖 eth/ens/eno/em/bond 等物理网卡命名，静默网卡由 hideZero/hideEmpty 隐藏。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "max",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(node_network_receive_bytes_total{device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(windows_net_bytes_received_total{nic!~\"isatap.*|VPN.*\"}[5m]) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{nic}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "全部主机入带宽（in）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "下载 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "全网所有主机的上传带宽。与入带宽面板对照看不对称性：个别主机出向远超其它主机时，检查该机是否有大文件分发、备份推送或异常外发流量。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "max",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(node_network_transmit_bytes_total{device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(windows_net_bytes_sent_total{nic!~\"isatap.*|VPN.*\"}[5m]) * 8",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{nic}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "全部主机出带宽（out）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "上传 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每台主机上下行合并对比，上传画在负半轴。原版 seriesOverrides 的 alias 正则（/_out上传$/）与图例命名不匹配导致负值不生效，本版将出向图例统一以「上传」结尾并用 /上传$/ 正则翻转。上下行明显不对称的主机即为流量热点。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "max",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "/上传$/",
+          "transform": "negative-Y"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "(rate(node_network_receive_bytes_total{device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_received_total{nic!~\"isatap.*|VPN.*\"}[5m]) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{nic}}{{device}}_下载",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "(rate(node_network_transmit_bytes_total{device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_sent_total{nic!~\"isatap.*|VPN.*\"}[5m]) * 8)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{nic}}{{device}}_上传",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "单机上下行对比（上传负值）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "上传（-）/下载（+）",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "按分组（consul service/job）聚合的上下行带宽与出入比，用于横向比较各业务分组的流量水位",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 300,
+      "panels": [],
+      "title": "分组对比 Group",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "各分组的下载带宽合计（组内 Linux 与 Windows 主机求和，series 级 or 合并两来源后再按 job 聚合）。选 All 可横向对比所有分组；某组带宽骤变时进入该分组，再看「主机明细」定位到单机。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "hiddenSeries": false,
+      "id": 31,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (job) ((rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组入带宽对比（in）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "下载 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "各分组的上传带宽合计。与入带宽面板同刻度对比即可发现以出向为主的分组（分发/备份类业务属正常）；无业务解释的出向抬升优先排查该组新增主机或异常进程。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "hiddenSeries": false,
+      "id": 32,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (job) ((rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组出带宽对比（out）",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "上传 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "各分组出带宽 ÷ 入带宽（分母用 clamp_min 兜底避免除零）。下载型业务集中在 0.2~0.8；某组长期大于 1 说明该组以出向流量为主（上传/分发/备份型业务属正常）；比率骤变通常对应业务行为变化或流量异常，结合上两个面板确认方向。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "hiddenSeries": false,
+      "id": 33,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (job) ((rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8)) / clamp_min(sum by (job) ((rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8) or (rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8)), 1)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "分组出入比",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 2,
+          "format": "percentunit",
+          "label": "出/入比",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "单机粒度下钻：入/出带宽 TopN（防序列爆炸）与全宽明细表（每网卡瞬时速率，Linux/Windows 统一网卡列）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "id": 400,
+      "panels": [],
+      "title": "主机明细 Host Detail",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个接口一条 ifOperStatus 阶梯线，**图例直接显示状态枚举**（up / down / testing / unknown / dormant / notPresent / lowerLayerDown），与底部「接口流量明细」表的状态列用同一套文本，不必再对照数字背状态码。纵轴固定 0~7 的整数刻度，曲线高度仍是原始状态码，因此既能看图例读状态、也能从高度看出状态码。状态轴必须 fill=0：有填充时高值序列的色块会连成一片，把掉到低值的接口整条盖住。判断依据是曲线的台阶——落到 down 的时刻即链路中断，抬回 up 即恢复；曲线整段消失才代表接口从采集里消失了（板卡拔出、子接口删除），两种语义不能混。多条线重合在 y=1 时靠图例区分，图例按当前值升序排列，掉线的接口排在最前。实现说明：Grafana 7.1.4 的 graph 图例只按 unit/decimals 格式化数字，不支持 stat/table 那样的 fieldConfig 数值映射，因此枚举是在查询里给序列打 `state` 标签实现的：七支比较运算各自打标签后合并，再关联一次接口名，每接口仍只有一条曲线。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "hiddenSeries": false,
+      "id": 41,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, (sum by (instance, device) (rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) * 8) or (sum by (instance, nic) (rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{device}}{{nic}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机入带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "下载 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "上传带宽最高的 N 台主机。出向 Top 通常是下载/分发服务端；若出现不熟悉的业务主机持续占据榜首，建议核查其对外连接（结合 netstat 与流控策略）。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "hiddenSeries": false,
+      "id": 42,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "current",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk($top, (sum by (instance, device) (rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m])) * 8) or (sum by (instance, nic) (rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m])) * 8))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{instance}}_{{device}}{{nic}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机出带宽 TopN",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "bps",
+          "label": "上传 bps",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "瞬时快照：每台主机每块物理网卡的上下行速率（bps）。Linux 与 Windows 的网卡标签（device/nic）通过 label_replace 统一到 iface 列后合并为一张表，无需区分操作系统。默认按下载列降序，定位流量热点主机与网卡；同时关注同一行上下行比例是否与业务类型相符。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 43,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": 3,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "主机",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "网卡",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "iface",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "下载带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #A",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "上传带宽",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value #B",
+          "thresholds": [],
+          "type": "number",
+          "unit": "bps"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance, iface) (label_replace(rate(node_network_receive_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8, \"iface\", \"$1\", \"device\", \"(.+)\")) or sum by (instance, iface) (label_replace(rate(windows_net_bytes_received_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8, \"iface\", \"$1\", \"nic\", \"(.+)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (instance, iface) (label_replace(rate(node_network_transmit_bytes_total{job=~\"$job\", device!~\"veth.*|lo|docker.*|br-.*|virbr.*|tun.*|cali.*|flannel.*\"}[5m]) * 8, \"iface\", \"$1\", \"device\", \"(.+)\")) or sum by (instance, iface) (label_replace(rate(windows_net_bytes_sent_total{job=~\"$job\", nic!~\"isatap.*|VPN.*\"}[5m]) * 8, \"iface\", \"$1\", \"nic\", \"(.+)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        }
+      ],
+      "title": "主机带宽明细",
+      "transform": "table",
+      "type": "table-old"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "Traffic",
+    "网络",
+    "流量",
+    "带宽"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*node.*|.*windows_exporter\",job!~\".*cadvisor|.*minio.*\"},job)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "分组名称",
+        "multi": false,
+        "name": "job",
+        "options": [],
+        "query": "label_values(up{job=~\".*node.*|.*windows_exporter\",job!~\".*cadvisor|.*minio.*\"},job)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "10",
+          "value": "10"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "TopN",
+        "multi": false,
+        "name": "top",
+        "options": [
+          {
+            "selected": false,
+            "text": "5",
+            "value": "5"
+          },
+          {
+            "selected": true,
+            "text": "10",
+            "value": "10"
+          },
+          {
+            "selected": false,
+            "text": "15",
+            "value": "15"
+          },
+          {
+            "selected": false,
+            "text": "20",
+            "value": "20"
+          }
+        ],
+        "query": "5,10,15,20",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "Traffic_Host(Optimized)",
+  "uid": "traffic-host-opt",
+  "version": 2
+}

@@ -1,0 +1,2136 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "IDC 机房服务器进风温度监控，基于 snmp_exporter 的 dell_idrac 模块（job 名含 idrac，抓取周期 60s）采集 Dell iDRAC 的 IDRAC-MIB-SMIv2 温度探针。指标口径说明：1) temperatureProbeReading 的单位是十分之一摄氏度，需除以 10；探针不可用时 iDRAC 上报哨兵值（MIB 中以 -128.0 表示不可用，不同固件在原始值上表现为 -128 或 -1280），因此所有读数查询都先按原始值 `> -30` 过滤、再除以 10，两种哨兵编码都能剔除，避免 -12.8℃ 或 -128℃ 的假读数压垮纵轴并掩盖真实曲线；2) temperatureProbeLocationName 在 snmp_exporter 中是独立的字符串指标、探针位置放在同名标签上，所以「按位置筛选与显示位置」都要经 `ignoring(temperatureProbeLocationName) group_right()` 把它 join 回读数序列，join 之后结果才带出 name/ip/instance 标签用于图例（其中 instance 是 iDRAC 带外地址，形如 192.168.16.226:161，ip 是业务网主机地址，两者不是同一个网络）；3) 全部查询限定 job=~\".*idrac.*\"，避免通用指标名混入其它 SNMP 抓取任务；4) 温度阈值分两种口径：**「超阈值进风口数」卡片与「进风超阈值趋势」图按 ≥30℃ 判定**（贴合本机房实际告警线），而「平均进风温度」「最高进风温度」卡片、明细表与折线着色仍按 ASHRAE TC9.9 A1 类推荐区间取 27℃ 黄 / 32℃ 红；5) 服务器进风探针相当于分布在机柜前端的免费温度探针，本仪表盘用逐台进风温度替代机房级温湿度传感器发现冷通道局部热点，并用进排风温差反映风量与气流组织；6) 机房整体温度与湿度、精密空调（CRAC）、UPS/PDU 负载、漏水与烟感属动环层数据，本仪表盘不包含，需另行接入机房级传感器。范围说明：可选探针位置由机型决定（常见 System Board Inlet Temp / System Board Exhaust Temp / CPU1 Temp / CPU2 Temp），机型未提供的位置对应面板为空属正常，不是采集故障。",
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "机房环境总览：iDRAC 采集连通性、在线服务器与探针规模、进风口温度的均值/最高值与超阈值数量、排风最高温度、进排风最大温差（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "iDRAC SNMP 采集连通性：1=正常、0=失联。取最小值，任一 iDRAC 掉线即变红。这张卡片是判断「后面的温度面板没有数据」到底是机房温度问题还是采集链路问题的第一依据——为 0 时其它温度数据都不可信。SNMP 走 161 端口且周期 60s，单次超时偶发，短暂抖动可结合时间轴忽略。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "min(up{job=~\".*idrac.*\"}) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "采集状态",
+          "refId": "A"
+        }
+      ],
+      "title": "iDRAC 采集状态",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "抓取成功的 iDRAC 数量（up==1）。与「温度探针数」配合可区分「整机掉线」和「机器在线但探针不再上报」：服务器数正常而探针数下降，说明 iDRAC 固件升级或 SNMP 侧温度表被禁用，而不是网络中断。无匹配序列时回落到 0，对象整体缺失时保持空白，不用假数据掩盖故障。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 2,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(up{job=~\".*idrac.*\"} == 1) or (count(up{job=~\".*idrac.*\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "在线服务器",
+          "refId": "A"
+        }
+      ],
+      "title": "在线服务器数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选 iDRAC 上报的温度探针条数（含进风、排风、CPU 等全部位置），是判断采集完整性的规模基线。数值骤降通常意味着 iDRAC 固件升级后温度表结构变化、SNMP 模块未跟随更新，或部分机器探针失效；逐台核对请看底部「温度探针明细」表。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"}) or (count(up{job=~\".*idrac.*\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "温度探针",
+          "refId": "A"
+        }
+      ],
+      "title": "温度探针数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "各服务器进风口温度的平均值。ASHRAE TC9.9 A1 类推荐区间为 18~27℃，取均值是为了看整体基线是否被抬高——均值上移通常意味着机房整体制冷能力不足，而不是单台机器局部问题；单点热点请看「进风温度 Top10」。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 27
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 4,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "avg(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "平均进风",
+          "refId": "A"
+        }
+      ],
+      "title": "平均进风温度",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "全部服务器中最高的进风口温度（最热的那一台）。这是判断冷通道热点最直接的单值：≥27℃ 变黄为预警、≥32℃ 变红为严重（已超出 A1 类允许上限）。取的是瞬时最大值，短时尖峰属正常，持续不下才需要处理。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 27
+              },
+              {
+                "color": "red",
+                "value": 32
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最高进风",
+          "refId": "A"
+        }
+      ],
+      "title": "最高进风温度",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "进风口温度已达 30℃ 预警线的探针数量（判定条件为 ≥30℃，多数机型每台仅一个进风探针，可近似视为服务器台数）。与「平均进风温度」互补：均值正常而本卡片大于 0，说明问题集中在少数机柜或某些 U 位，属典型的气流组织不良（盲板缺失、冷热通道未封闭、局部送风不足）。全部健康时显示 0 而不是空白，便于与历史对比。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"} >= 30) or (count(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "超阈值进风口",
+          "refId": "A"
+        }
+      ],
+      "title": "超阈值进风口数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "全部服务器中最高的排风口温度。排风温度高本身不等于故障（与负载正相关），它主要用来与进风温度对比：进风正常而排风异常高，往往是该机箱风扇故障、散热器积灰或 CPU 长期满载。机型没有 System Board Exhaust Temp 探针时本卡片为空属正常。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 45
+              },
+              {
+                "color": "red",
+                "value": 55
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 7,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最高排风",
+          "refId": "A"
+        }
+      ],
+      "title": "最高排风温度",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "单台服务器「排风温度 − 进风温度」的最大值，即进出风温差 ΔT。ΔT 偏大说明同样风量下带走的热量更多，常见于风扇降速、防尘网堵塞或风道受阻；机群内 ΔT 离散度大则说明气流分配不均。只统计同时上报进风与排风探针的机器，因此本卡片为空通常意味着机型缺少其中一个探针，而不是采集异常。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 8,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"}) - on(instance) max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最大温差",
+          "refId": "A"
+        }
+      ],
+      "title": "最大进排风温差",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "冷通道进风：逐台进风温度趋势、最热 Top10、整体极值与均值、超阈值台数趋势",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 200,
+      "panels": [],
+      "title": "冷通道进风 Inlet",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按服务器展示进风口温度（℃）趋势，每台机器一条曲线，图例以表格形式给出 Min/Max/Current 便于横向对比。图例格式为「机器名 | idrac: iDRAC带外地址 | hostIP: 主机地址」，其中 idrac 是带外管理口（形如 192.168.16.226:161），排查时直接用它登录 iDRAC 看风扇/电源详情，hostIP 才是业务网地址。进风温度是机房环境最贴近设备的度量：曲线整体抬升=制冷不足；只有个别机器抬升=该机柜局部送风不足或存在热回流。断线代表该探针此刻无有效读数（哨兵值已被过滤），不是采集整体中断——整体中断时所有曲线会同时消失，可对照「iDRAC 采集状态」卡片确认。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 11,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进风温度趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "当前进风温度最高的 10 台服务器，用于快速定位冷通道热点。阶梯线便于区分热量是逐步累积还是突变：逐步累积多为空调能力不足或负载上升，突变更像送风中断、机柜门开启或冷通道封闭被破坏。要精确到机柜位置，需在 Consul 服务元数据里补充 room/row/rack 标签并在此按标签分组。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进风温度 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "全部进风口探针的最高值、平均值与最低值三条线。最高与最低的间距就是机群进风温度的离散度：间距收窄说明气流分布均匀；间距拉大而均值不高，说明存在局部热点，需按「进风温度 Top10」逐台定位。最低值长期偏低（<18℃）可能是送风过量或冷风短路，存在结露风险。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 13,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最高进风",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "avg(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "平均进风",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "min(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "最低进风",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进风温度极值与均值",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "进风口温度达到 30℃ 预警线（≥30℃）的探针数量趋势，健康的机房应长期贴着 0。这条曲线是机房环境最值得配告警的序列：数值开始持续爬升就是制冷能力逼近临界点的信号。全部健康时保留 0 基线而不是空白，以便区分「没有超温」和「没有采集到」——采集整体中断时该线会消失，那时请确认「iDRAC 采集状态」卡片。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"} >= 30) or (count(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "超阈值进风口",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进风超阈值趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "探针数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "热通道与温差：排风温度趋势、最热 Top10、以及「排风 − 进风」温差分析（反映风量与气流组织）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 300,
+      "panels": [],
+      "title": "热通道与温差 Exhaust & Delta",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按服务器展示排风口温度趋势。排风温度与负载强相关（CPU 越忙排风越热），所以这条曲线更适合做相对比较：同一批机器里某台排风显著高于其它而进风正常，优先怀疑该机箱风扇故障、散热器积灰或进风口被线缆遮挡。机型没有 System Board Exhaust Temp 探针时本图为空属正常。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"}",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "排风温度趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "当前排风温度最高的 10 台服务器。排风温度是热通道温度的直接代理指标：若这 10 台的进风温度都正常，说明热量被有效带走、属负载差异；若排风 Top10 与进风 Top10 大量重叠，说明这些机柜整体处于过热点。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "排风温度 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "同一台服务器的排风、进风与两者差值三条曲线。温差 ΔT 是判断风量是否充足的关键派生指标：进风正常而 ΔT 明显变大，说明风扇转速下降、防尘网堵塞或风扇故障导致风量不足；进风与排风同时抬高且 ΔT 不变，说明是机房环境温度上升而非机箱散热问题。曲线只包含同时上报进风与排风探针的机器。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} 排风 | {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} 进风 | {{instance}}",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"}) - on(instance) max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} 温差 | {{instance}}",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进排风温差趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度 / 温差",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "进出风温差最大的 10 台服务器。温差排名靠前而进风温度正常，说明这些机器单位风量的散热负荷偏高（风扇降速策略、积灰、风道受阻）；若进风也高，则叠加了机房环境问题。这是巡检时优先检查风扇与滤网的一批机器。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 24,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(10, max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Exhaust.*\"}) - on(instance) max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进排风温差 Top10",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温差",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "部件温度与变化率：CPU 温度、进风温度变化速度、最热探针 Top20、按探针位置汇总的最高温度",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 400,
+      "panels": [],
+      "title": "部件温度与变化率 Components",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每台服务器 CPU 探针的最高温度趋势。CPU 温度是机箱内最敏感的热点：进风温度不变而 CPU 温度整体抬升，通常是散热器积灰、硅脂老化或风扇转速策略变化；只有个别核心异常则可能是该 CPU 长期高负载。机型未提供 CPU 温度探针时本图为空属正常。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "hiddenSeries": false,
+      "id": 31,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (instance, name, ip) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*CPU.*\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "CPU 温度趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "进风口温度在最近 5 分钟内的变化量（Δt），即温度上升速度。这是空调故障的早期预警指标：绝对温度还没到阈值、但 Δt 持续为正且偏大时，通常意味着精密空调正在失效或送风中断，比等到 27℃ 才告警能提前几分钟到十几分钟。曲线贴 0 表示温度平稳。由于探针失联期间会跳变到哨兵值，此处对结果再做 ±30℃ 的合理区间过滤，避免单点跳变产生 ±148℃ 的假尖峰压垮纵轴（五分钟后真实温差不会超过该范围，被滤掉的点表现为断线）。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "hiddenSeries": false,
+      "id": 32,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "((((delta(temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"}[5m]) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\".*Inlet.*\"}) > -30) < 30)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | hostIP: {{ip}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "进风温度 5 分钟变化量",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "celsius",
+          "label": "变化量",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "当前温度最高的 20 个探针（含进风、排风、CPU 等全部位置），范围由顶部「探针位置」变量决定，选 All 即全量。这是整机视角下最热的点位清单：既能定位哪台机器最热，也能看出热点在机箱内的具体部位——排风口最热属正常，进风口或 CPU 最热才需要处理。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "hiddenSeries": false,
+      "id": 33,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "topk(20, max by (instance, name, ip, temperatureProbeLocationName) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\"$probe\"}))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{name}} | idrac: {{instance}} | {{temperatureProbeLocationName}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "高温探针 Top20",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按探针位置类型汇总的最高温度，一类位置一条线（进风、排风、CPU1、CPU2…）。它把上百条探针压成十来条线，适合长期观察「哪一类部位的温度在爬升」：进风类抬升=机房环境恶化，CPU 类抬升=机箱散热劣化，排风类抬升=负载或风量变化。序列数只取决于机型支持的位置种类，不会随服务器数量膨胀，因此长期开图开销很低。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "hiddenSeries": false,
+      "id": 34,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (temperatureProbeLocationName) (((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\"$probe\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{temperatureProbeLocationName}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各探针位置最高温度",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "celsius",
+          "label": "温度",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "温度探针明细（全宽瞬时快照）：按 机器名 → IP → iDRAC 实例 → 探针位置 列出当前温度，按温度阈值着色，用于逐台核对与巡检取证",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "id": 500,
+      "panels": [],
+      "title": "探针明细 Detail",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "全量温度探针的瞬时快照，按 机器名 → IP → iDRAC 实例 → 探针位置 排序，温度列按 <27℃ 绿、27~32℃ 黄、≥32℃ 红着色，可一眼扫出过热项。列顺序由 a1~a4 排序前缀标签固定（table-old 的 styles 只负责别名与着色、排不了列，标签列按字母序排列）。范围由顶部「iDRAC 实例」与「探针位置」两个变量控制，选 All 即全量。若某台机器整行缺失、或探针条数骤减，先看「iDRAC 采集状态」与「温度探针数」确认采集链路是否正常，再看服务器本身。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 41,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "机器名",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a1_machine",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "iDRAC 实例",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a2_idrac",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "hostIP",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a3_ip",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "探针位置",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "a4_probe",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "温度 (℃)",
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 1,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value",
+          "thresholds": [
+            "27",
+            "32"
+          ],
+          "type": "number",
+          "unit": "celsius"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_machine, a2_idrac, a3_ip, a4_probe) (label_replace(label_replace(label_replace(label_replace(((temperatureProbeReading{job=~\".*idrac.*\",instance=~\"$idrac\"} > -30) / 10) / ignoring(temperatureProbeLocationName) group_right() temperatureProbeLocationName{job=~\".*idrac.*\",instance=~\"$idrac\",temperatureProbeLocationName=~\"$probe\"}, \"a1_machine\", \"$1\", \"name\", \"(.*)\"), \"a2_idrac\", \"$1\", \"instance\", \"(.*)\"), \"a3_ip\", \"$1\", \"ip\", \"(.*)\"), \"a4_probe\", \"$1\", \"temperatureProbeLocationName\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "温度探针明细",
+      "transform": "table",
+      "type": "table-old"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "IDC",
+    "机房环境",
+    "温度",
+    "iDRAC"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*idrac.*\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "iDRAC 实例",
+        "multi": true,
+        "name": "idrac",
+        "options": [],
+        "query": "label_values(up{job=~\".*idrac.*\"}, instance)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(temperatureProbeLocationName{job=~\".*idrac.*\"}, temperatureProbeLocationName)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "探针位置",
+        "multi": true,
+        "name": "probe",
+        "options": [],
+        "query": "label_values(temperatureProbeLocationName{job=~\".*idrac.*\"}, temperatureProbeLocationName)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "IDC Temp (Optimized)",
+  "uid": "idc-temp-opt",
+  "version": 1
+}

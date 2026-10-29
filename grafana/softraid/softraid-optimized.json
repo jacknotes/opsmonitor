@@ -1,0 +1,1812 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Linux 软 RAID（mdadm）阵列监控，数据源为 raid_monitor 脚本经 Pushgateway 上报的 raid_status 指标，适配 Grafana 7.1.4（schemaVersion 26）。指标口径说明：1) raid_status 的«值»是状态码 0 正常 / 1 降级 / 2 未知，而阵列级别、成员盘数、容量、创建与更新时间全部是«标签»（字符串），PromQL 无法对标签做求和或算术，因此规模类信息只能计数或按标签过滤，容量与时间只能原样展示；2) Pushgateway 永久保留最后一次推送，抓取只刷新样本时间戳，阵列状态序列永远「新鲜」，判采集是否中断必须用 pushgateway 自带的 push_time_seconds；3) 失败盘与热备盘用标签正则 !~\"[1-9][0-9]*\" 的反向匹配（=~\"[1-9][0-9]*\"）计数，依赖采集脚本把数量写成纯整数；4) 0/1/2 状态轴一律 fill=0，避免高值色块盖住掉到低值的序列；5) 全部计数类查询用「count(异常) or (count(全量) * 0)」兜底，健康时返回 0 曲线而非空白，采集断链时保持空白；6) 变量为采集任务（隐藏）/主机（多选 All）/阵列设备（多选 All），均 current=null + refresh=2 自动解析。布局：8 张 w3 概览卡片 + 状态趋势 6 图三列 + 采集健康表 + 阵列状态明细表。",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "阵列规模与健康概览：推送新鲜度、主机与阵列数量、当前最差状态、降级/未知/失败盘阵列数（8 张卡片，均带迷你趋势线）",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "阵列概览 Overview",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "距 raid_monitor 上一次推送的秒数（time() - push_time_seconds）。Pushgateway 会永久保留最后一次推送的值，抓取时只刷新样本时间戳，所以阵列状态序列永远「新鲜」，仅凭 raid_status 无法发现采集脚本停摆——本卡片是唯一可靠的采集判活手段。取各主机中的最大值（最久没推送的那台），并只统计同时上报了阵列指标的主机，避免 Pushgateway 上的其它推送分组混入。阈值按脚本实际执行周期调整（默认 15 分钟告警、30 分钟严重）；显示 No data 表示 Pushgateway 上压根没有 raid_monitor 的推送分组，推送链已完全中断。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 900
+              },
+              {
+                "color": "dark-red",
+                "value": 1800
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(max by (exported_instance) (time() - push_time_seconds{job=~\"pushgateway\", exported_job=~\"$raid_job\"}) and on (exported_instance) (max by (exported_instance) (raid_status{exported_job=~\"$raid_job\"})))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "距上次推送",
+          "refId": "A"
+        }
+      ],
+      "title": "采集新鲜度",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "已上报阵列指标的主机数量（按 exported_instance 去重）。该卡片不跟随顶部「主机」变量过滤，固定展示监控覆盖面：数值下降说明有主机停止推送，通常与采集新鲜度卡片同时变红。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 2,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"})) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "监控主机",
+          "refId": "A"
+        }
+      ],
+      "title": "监控主机数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所选主机与设备范围内上报的阵列（device）条目数。数值骤降通常意味着阵列未被组装（重启后 /etc/mdadm.conf 缺失 或 raid_monitor 未识别到活动阵列），需结合下方「阵列总数趋势」的台阶判断。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) or vector(0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "阵列数",
+          "refId": "A"
+        }
+      ],
+      "title": "阵列总数",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "所有阵列中最差的状态码：0=正常（绿）、1=降级（黄）、2=未知（红）。取 max 而非 avg，只要有一块阵列降级就会直接反映为告警色，不会被健康的阵列平均掉。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "id": 0,
+              "type": 1,
+              "value": "0",
+              "text": "正常",
+              "from": "",
+              "to": ""
+            },
+            {
+              "id": 1,
+              "type": 1,
+              "value": "1",
+              "text": "降级",
+              "from": "",
+              "to": ""
+            },
+            {
+              "id": 2,
+              "type": 1,
+              "value": "2",
+              "text": "未知",
+              "from": "",
+              "to": ""
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 1
+              },
+              {
+                "color": "dark-red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 4,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "状态",
+          "refId": "A"
+        }
+      ],
+      "title": "整体健康",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "状态码为 1 的阵列数量。大于 0 即表示阵列冗余已失效（掉盘、重建中或校验错误），此时若再坏一块盘就会丢数据，应立即在「阵列明细」表定位具体 device 并更换故障盘。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"} == 1) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "降级阵列",
+          "refId": "A"
+        }
+      ],
+      "title": "降级阵列",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "状态码为 2 的阵列数量：采集脚本无法判定阵列状态（mdadm 命令执行失败、权限不足或解析失败）。这类阵列的实际健康状况未知，需按降级同等对待并检查 raid_monitor 的执行环境。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"} == 2) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "未知阵列",
+          "refId": "A"
+        }
+      ],
+      "title": "未知状态",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "raid_failed_devices 标签为非零整数的阵列数量。这是比状态码更早的故障信号：阵列可能仍处于 active/降级过程中，但已经有盘被判失败。注意该统计依赖采集脚本把失败盘数量写入标签，若脚本只写 0/空则该卡片恒为 0。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 7,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\", raid_failed_devices=~\"[1-9][0-9]*\"}) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "失败盘阵列",
+          "refId": "A"
+        }
+      ],
+      "title": "失败盘阵列",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "description": "raid_spare_devices 标签为非零整数的阵列数量，用于容量规划参考：热备盘为 0 时阵列一旦降级只能等人工换盘，重建无法自动开始。0 属常见正常状态（RAID0/RAID10 无需热备），因此本卡片不设告警阈值。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 8,
+      "interval": null,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.4",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\", raid_spare_devices=~\"[1-9][0-9]*\"}) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "有热备",
+          "refId": "A"
+        }
+      ],
+      "title": "有热备阵列",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "状态码与规模随时间的变化：阵列状态阶梯线、主机最差状态、阵列总数台阶、降级/未知计数、采集健康、各主机阵列数",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 150,
+      "panels": [],
+      "title": "状态趋势 Trend",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每个阵列一条 0/1/2 阶梯线（0 正常 / 1 降级 / 2 未知）。状态轴必须 fill=0：有填充时值高的序列色块会连成一片，把掉到低值的阵列整条盖住。曲线落到 1 的时间点即降级发生时刻，抬回 0 即重建完成——判断依据是«曲线的台阶»，不是«有没有线»。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_instance, device) (raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{exported_instance}} · {{device}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "阵列状态趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "状态码",
+          "logBase": 1,
+          "max": 2,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "每台主机上所有阵列的最差状态（max by exported_instance）。多主机场景下用于快速定位是哪台机器出问题，避免在逐阵列曲线里逐条排查。同样用 fill=0 的阶梯线，台阶即状态切换点。",
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_instance) (raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{exported_instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "主机最差状态",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "状态码",
+          "logBase": 1,
+          "max": 2,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "阵列条目数随时间的变化台阶。下降一段=有阵列从上报中消失（未组装、已被拆除或脚本未识别）；上升一段=新增阵列或脚本恢复识别。这是发现«阵列悄悄消失»的唯一手段，单看状态码发现不了——阵列消失后状态曲线只是断掉，不会变成 1。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "阵列总数",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "阵列总数趋势",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "阵列数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "降级（状态 1）与未知（状态 2）阵列的数量趋势。兜底写成 count(异常) or (count(全量) * 0)：全部健康时返回 0 值曲线而不是空白，采集整体断链时保持空白（不把故障掩盖成 0）。两条线长期贴 0 才是健康态。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 24,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"} == 1) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "降级阵列",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"} == 2) or (count(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}) * 0)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "未知阵列",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "降级与未知阵列数",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "阵列数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "双轴：左轴为距 raid_monitor 上次推送的秒数（越大越危险），右轴为 Pushgateway 抓取状态（1 正常 / 0 失联），后者被推到右侧 0~1 的状态轴。两者同时恶化=采集链路中断；仅左轴抬升=脚本不再推送但 Pushgateway 仍在抓取，通常是定时任务失败或主机改名导致推送分组变化。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 25,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "抓取状态",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max(max by (exported_instance) (time() - push_time_seconds{job=~\"pushgateway\", exported_job=~\"$raid_job\"}) and on (exported_instance) (max by (exported_instance) (raid_status{exported_job=~\"$raid_job\"})))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "距上次推送",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "min(up{job=~\"pushgateway\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "抓取状态",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "采集健康",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "s",
+          "label": "距上次推送",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": "抓取状态",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "按主机统计上报的阵列数量，用于确认监控覆盖面是否完整：某台主机的线掉到 0 说明它的阵列已不再上报（脚本未运行或该主机被移出推送分组）。与「阵列总数趋势」配合可区分«整机失联»与«单块阵列消失»。",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 26,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"})",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{exported_instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "各主机阵列数",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "short",
+          "label": "阵列数",
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": 0,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "按主机的推送新鲜度与阵列统计：距上次推送秒数、阵列数、降级数、未知数",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 200,
+      "panels": [],
+      "title": "采集健康 Health",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "按主机汇总的采集质量与阵列计数，只列出真正上报了阵列指标的主机。距上次推送（秒）是判活核心：Pushgateway 永久保留旧值，只要脚本停推，阵列状态序列依然「新鲜」，只有本列会持续增大。该列由 push_time_seconds 与 raid_status 的主机集合求交（`and on(exported_instance)`）得到，否则 Pushgateway 上其它推送分组（例如 prometheus 自身）会作为「阵列数/降级/未知全空」的假行混进来。降级/未知列用「count(异常) or (count(全量) * 0)」兜底，健康主机显示 0 而不是空行；整机失联时该主机的所有列一起消失，不会被误读成 0。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 41,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "主机",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "exported_instance",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "距上次推送",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Value #A",
+          "type": "number",
+          "unit": "s",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "thresholds": [
+            "900",
+            "1800"
+          ],
+          "colorMode": "cell",
+          "mappingType": 1,
+          "link": false,
+          "decimals": 0
+        },
+        {
+          "alias": "阵列数",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Value #B",
+          "type": "number",
+          "unit": "short",
+          "decimals": 0
+        },
+        {
+          "alias": "降级阵列",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Value #C",
+          "type": "number",
+          "unit": "short",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "thresholds": [
+            "1"
+          ],
+          "colorMode": "cell",
+          "mappingType": 1,
+          "link": false,
+          "decimals": 0
+        },
+        {
+          "alias": "未知阵列",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Value #D",
+          "type": "number",
+          "unit": "short",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)"
+          ],
+          "thresholds": [
+            "1"
+          ],
+          "colorMode": "cell",
+          "mappingType": 1,
+          "link": false,
+          "decimals": 0
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (exported_instance) (time() - push_time_seconds{job=~\"pushgateway\", exported_job=~\"$raid_job\"}) and on (exported_instance) (max by (exported_instance) (raid_status{exported_job=~\"$raid_job\"}))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"} == 1) or (count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "C"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"} == 2) or (count by (exported_instance) (raid_status{exported_job=~\"$raid_job\"}) * 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "D"
+        }
+      ],
+      "title": "主机采集状态",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "description": "每个阵列一行：主机 / 设备 / RAID 级别 / 状态 / 重建状态 / 盘数 / 容量 / 创建与更新时间",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 250,
+      "panels": [],
+      "title": "阵列明细 Detail",
+      "type": "row"
+    },
+    {
+      "columns": [],
+      "datasource": "Prometheus",
+      "description": "瞬时快照，每个阵列一行。「健康状态」列由指标值 0/1/2 映射为中文并整格着色（正常绿 / 降级黄 / 未知红）；「内核状态」列是 raid_state 标签的原文（如 clean / active / clean, degraded），两者并列用于交叉核对脚本判定是否漏判——若内核状态已含 degraded 而健康状态仍显示正常，说明采集脚本的状态映射逻辑有漏洞，应以失败盘列与内核状态为准。失败盘列非零标红，是最直接的换盘依据。列序由查询里的 a1_/b1_ 前缀标签固定（table-old 的列序按标签名字母序排列，styles 只负责别名与着色，改不了顺序）。重建状态、容量、创建/更新时间为采集脚本写入的原始字符串，原样展示以便与 mdadm 输出对照；容量单位取决于脚本口径。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 42,
+      "links": [],
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "hidden"
+        },
+        {
+          "alias": "主机",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a1_host",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "设备",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a2_device",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "级别",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a3_level",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "内核状态",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "pattern": "a4_state",
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "op": "=",
+              "value": "clean",
+              "text": "正常"
+            },
+            {
+              "op": "=",
+              "value": "active",
+              "text": "正常"
+            },
+            {
+              "op": "=",
+              "value": "inactive",
+              "text": "未激活"
+            },
+            {
+              "op": "=",
+              "value": "clean, degraded",
+              "text": "降级"
+            },
+            {
+              "op": "=",
+              "value": "active, degraded",
+              "text": "降级"
+            },
+            {
+              "op": "=",
+              "value": "clean, degraded, recovering",
+              "text": "降级·重建中"
+            },
+            {
+              "op": "=",
+              "value": "active, degraded, recovering",
+              "text": "降级·重建中"
+            },
+            {
+              "op": "=",
+              "value": "clean, recovering",
+              "text": "重建中"
+            },
+            {
+              "op": "=",
+              "value": "clean, degraded, resyncing",
+              "text": "降级·同步中"
+            }
+          ]
+        },
+        {
+          "alias": "重建状态",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "pattern": "a5_rebuild",
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "op": "=",
+              "value": "none",
+              "text": "无"
+            },
+            {
+              "op": "=",
+              "value": "idle",
+              "text": "空闲"
+            },
+            {
+              "op": "=",
+              "value": "recovering",
+              "text": "重建中"
+            },
+            {
+              "op": "=",
+              "value": "resyncing",
+              "text": "同步中"
+            },
+            {
+              "op": "=",
+              "value": "checking",
+              "text": "巡检中"
+            },
+            {
+              "op": "=",
+              "value": "reshape",
+              "text": "扩容中"
+            }
+          ]
+        },
+        {
+          "alias": "活跃盘",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a6_active",
+          "type": "number",
+          "unit": "short",
+          "decimals": 0
+        },
+        {
+          "alias": "总盘数",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a7_total",
+          "type": "number",
+          "unit": "short",
+          "decimals": 0
+        },
+        {
+          "alias": "失败盘",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a8_failed",
+          "type": "number",
+          "unit": "short",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "thresholds": [
+            "1"
+          ],
+          "colorMode": "cell",
+          "mappingType": 1,
+          "link": false,
+          "decimals": 0
+        },
+        {
+          "alias": "热备盘",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "a9_spare",
+          "type": "number",
+          "unit": "short",
+          "decimals": 0
+        },
+        {
+          "alias": "冗余盘",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "b1_raid",
+          "type": "number",
+          "unit": "short",
+          "decimals": 0
+        },
+        {
+          "alias": "阵列容量",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "b2_size",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "创建时间",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "b3_create",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "更新时间",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "b4_update",
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "健康状态",
+          "align": "auto",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "mappingType": 1,
+          "pattern": "Value",
+          "thresholds": [
+            "1",
+            "2"
+          ],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "op": "=",
+              "value": "0",
+              "text": "正常"
+            },
+            {
+              "op": "=",
+              "value": "1",
+              "text": "降级"
+            },
+            {
+              "op": "=",
+              "value": "2",
+              "text": "未知"
+            }
+          ]
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "decimals": 2,
+          "pattern": "/.*/",
+          "preserveFormat": true,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "max by (a1_host, a2_device, a3_level, a4_state, a5_rebuild, a6_active, a7_total, a8_failed, a9_spare, b1_raid, b2_size, b3_create, b4_update) (label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\", device=~\"$device\"}, \"a1_host\", \"$1\", \"exported_instance\", \"(.*)\"), \"a2_device\", \"$1\", \"device\", \"(.*)\"), \"a3_level\", \"$1\", \"raid_level\", \"(.*)\"), \"a4_state\", \"$1\", \"raid_state\", \"(.*)\"), \"a5_rebuild\", \"$1\", \"raid_rebuild_status\", \"(.*)\"), \"a6_active\", \"$1\", \"raid_active_devices\", \"(.*)\"), \"a7_total\", \"$1\", \"raid_total_devices\", \"(.*)\"), \"a8_failed\", \"$1\", \"raid_failed_devices\", \"(.*)\"), \"a9_spare\", \"$1\", \"raid_spare_devices\", \"(.*)\"), \"b1_raid\", \"$1\", \"raid_raid_devices\", \"(.*)\"), \"b2_size\", \"$1\", \"raid_array_size\", \"(.*)\"), \"b3_create\", \"$1\", \"raid_create_time\", \"(.*)\"), \"b4_update\", \"$1\", \"raid_update_time\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "阵列状态明细",
+      "transform": "table",
+      "type": "table-old"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [
+    "SoftRAID",
+    "RAID",
+    "mdadm"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(raid_status, exported_job)",
+        "hide": 2,
+        "includeAll": true,
+        "label": "采集任务",
+        "multi": false,
+        "name": "raid_job",
+        "options": [],
+        "query": "label_values(raid_status, exported_job)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(raid_status{exported_job=~\"$raid_job\"}, exported_instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "主机",
+        "multi": true,
+        "name": "host",
+        "options": [],
+        "query": "label_values(raid_status{exported_job=~\"$raid_job\"}, exported_instance)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": null,
+        "datasource": "Prometheus",
+        "definition": "label_values(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\"}, device)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "阵列设备",
+        "multi": true,
+        "name": "device",
+        "options": [],
+        "query": "label_values(raid_status{exported_job=~\"$raid_job\", exported_instance=~\"$host\"}, device)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "SoftRAID (Optimized)",
+  "uid": "softraid-opt-155",
+  "version": 1
+}
